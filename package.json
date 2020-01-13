@@ -1,7 +1,7 @@
 {
   "name": "ironhook",
   "version": "0.0.0",
-  "description": "TODO",
+  "description": "A JavaScript library for reactive programming using React-like Hooks.",
   "bugs": {
     "url": "https://github.com/clebert/ironhook/issues"
   },
@@ -38,7 +38,7 @@
   "size-limit": [
     {
       "path": "lib/index.js",
-      "limit": "1.2 KB"
+      "limit": "1.19 KB"
     }
   ]
 }
