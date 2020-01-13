@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "target": "es2017",
+    "jsx": "react",
+    "allowSyntheticDefaultImports": true,
+    "pretty": true,
+    "declaration": true,
+    "outDir": "lib"
+  },
+  "include": ["src/**/*"]
+}

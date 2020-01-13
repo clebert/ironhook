@@ -1,0 +1,37 @@
+{
+  "name": "ironhook",
+  "version": "0.0.0",
+  "description": "TODO",
+  "bugs": {
+    "url": "https://github.com/clebert/ironhook/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clebert/ironhook.git"
+  },
+  "license": "MIT",
+  "author": "Clemens Akens <clebert@me.com>",
+  "files": [
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "precompile": "rm -rf lib",
+    "compile": "tsc",
+    "format": "prettier --write '**/*.{html,js,json,md,ts,tsx,yml}'",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.4",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.7.4",
+    "@babel/plugin-proposal-optional-chaining": "^7.7.5",
+    "@babel/preset-env": "^7.7.4",
+    "@babel/preset-typescript": "^7.7.4",
+    "@types/jest": "^24.0.23",
+    "@types/node": "^12.12.14",
+    "jest": "^24.9.0",
+    "prettier": "^1.19.1",
+    "typescript": "^3.7.2"
+  }
+}
