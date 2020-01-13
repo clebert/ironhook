@@ -200,10 +200,10 @@ export class Runner<TResult> {
   private run(): void {
     if (!this.memoryAllocated || this.applyStateChanges()) {
       do {
-        this.useMain();
+        this.execute();
 
         while (this.applyStateChanges()) {
-          this.useMain();
+          this.execute();
         }
 
         this.cleanUpEffects();
@@ -212,7 +212,7 @@ export class Runner<TResult> {
     }
   }
 
-  private useMain(): void {
+  private execute(): void {
     Runner.current = this;
 
     try {
