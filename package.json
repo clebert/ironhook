@@ -20,6 +20,8 @@
     "precompile": "rm -rf lib",
     "compile": "tsc",
     "format": "prettier --write '**/*.{html,js,json,md,ts,tsx,yml}'",
+    "release": "npm version",
+    "postrelease": "git push --follow-tags",
     "test": "jest"
   },
   "devDependencies": {
