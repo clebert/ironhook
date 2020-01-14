@@ -1,6 +1,6 @@
 {
   "name": "ironhook",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A JavaScript library for reactive programming using React-like Hooks.",
   "bugs": {
     "url": "https://github.com/clebert/ironhook/issues"
