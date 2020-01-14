@@ -101,7 +101,8 @@ function run<TResult>(
 
 ### Implementation Status
 
-Below is the reimplementation status of the various built-in hooks in React:
+Below you can see the reimplementation status of the various built-in hooks of
+React:
 
 | Hook                                                                                     | Status        |
 | ---------------------------------------------------------------------------------------- | ------------- |
