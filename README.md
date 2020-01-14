@@ -1,10 +1,19 @@
 # ironhook
 
-![](https://github.com/clebert/ironhook/workflows/CI/badge.svg)
-![](https://badgen.net/npm/v/ironhook)
-![](https://badgen.net/npm/license/ironhook)
-![](https://badgen.net/npm/types/ironhook)
-![](https://badgen.net/bundlephobia/minzip/ironhook)
+[![][ci-badge]][ci-link] [![][version-badge]][version-link]
+[![][license-badge]][license-link] [![][types-badge]][types-link]
+[![][size-badge]][size-link]
+
+[ci-badge]: https://github.com/clebert/ironhook/workflows/CI/badge.svg
+[ci-link]: https://github.com/clebert/ironhook
+[version-badge]: https://badgen.net/npm/v/ironhook
+[version-link]: https://www.npmjs.com/package/ironhook
+[license-badge]: https://badgen.net/npm/license/ironhook
+[license-link]: https://github.com/clebert/ironhook/blob/master/LICENSE
+[types-badge]: https://badgen.net/npm/types/ironhook
+[types-link]: https://github.com/clebert/ironhook
+[size-badge]: https://badgen.net/bundlephobia/minzip/ironhook
+[size-link]: https://bundlephobia.com/result?p=ironhook
 
 A JavaScript library for reactive programming using React-like Hooks.
 
