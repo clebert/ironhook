@@ -25,3 +25,4 @@ jobs:
           yarn compile
           yarn size-limit
           yarn test
+          node example.js
