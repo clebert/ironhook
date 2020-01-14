@@ -117,6 +117,25 @@ React:
 | [useLayoutEffect](https://reactjs.org/docs/hooks-reference.html#uselayouteffect)         | ❌Not planned |
 | [useDebugValue](https://reactjs.org/docs/hooks-reference.html#usedebugvalue)             | ❌Not planned |
 
+## Development
+
+### Publish A New Release
+
+```
+yarn release patch
+```
+
+```
+yarn release minor
+```
+
+```
+yarn release major
+```
+
+After a new release has been created by pushing the tag, it must be published
+via the GitHub UI. This triggers the final publication to npm.
+
 ---
 
 Copyright (c) 2020, Clemens Akens. Released under the terms of the
