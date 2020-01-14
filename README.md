@@ -4,7 +4,7 @@
 
 A JavaScript library for reactive programming using React-like Hooks.
 
-- **Small.** 1.18 KB (minified and gzipped).
+- **Small.** 1.31 KB (minified and gzipped).
 - **No dependencies.** Not even React!
 - **Typed.** TypeScript declarations included.
 
