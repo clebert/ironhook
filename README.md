@@ -37,10 +37,10 @@ Reactive programming is generally understood to be programming using
 asynchronous data streams, which form the conceptual basis for libraries like
 RxJS. I never found the right access to the concepts and APIs of said libraries.
 
-In React, the concept of so-called hooks has become the standard pattern for
+In React, the concept of so-called Hooks has become the standard pattern for
 programming stateful, reactive functional components.
 
-In contrast to the concept of streams, the concept of hooks was something I
+In contrast to the concept of streams, the concept of Hooks was something I
 liked from the beginning. I find them very intuitive to write and read.
 
 I wanted to use this kind of reactive programming also in other areas, for
@@ -83,12 +83,12 @@ Hello, World!
 
 The [React Hooks API reference](https://reactjs.org/docs/hooks-reference.html)
 also applies to this library and can be consulted. The main difference to React
-is that this library executes a hook (aka `mainHook`) directly without a
+is that this library executes a Hook (aka `mainHook`) directly without a
 surrounding function component. The first execution is scheduled as a macrotask
 after `run(mainHook, onResult)` is called. The respective result of an execution
 is forwarded to the `onResult(result)` handler as long as the result is not
 `undefined`. All further executions can be initiated internally by using the
-`useState` hook. The `mainHook` continues to run, i.e. it holds the state and
+`useState` Hook. The `mainHook` continues to run, i.e. it holds the state and
 reacts to state changes until an error is thrown or the `stop()` method is
 called. An error or stop has the same effect as unmounting a React function
 component.
@@ -110,7 +110,7 @@ function run<TResult>(
 
 ### Implementation Status
 
-Below you can see the reimplementation status of the various built-in hooks of
+Below you can see the reimplementation status of the various Hooks built into
 React:
 
 | Hook                                                                                     | Status               |
