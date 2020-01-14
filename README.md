@@ -8,9 +8,6 @@ A JavaScript library for reactive programming using React-like Hooks.
 - **No dependencies.** Not even React!
 - **Typed.** TypeScript declarations included.
 
-> Made for people who have not found access to the concept of asynchronous data
-> streams, which is the conceptual basis for libraries like RxJS.
-
 ## Installation
 
 Using `yarn`:
@@ -101,6 +98,23 @@ function run<TResult>(
   onResult: (result: TResult) => void
 ): RunningHook;
 ```
+
+### Implementation Status
+
+Below is the reimplementation status of the various built-in hooks in React:
+
+| Hook                                                                                     | Status        |
+| ---------------------------------------------------------------------------------------- | ------------- |
+| [useState](https://reactjs.org/docs/hooks-reference.html#usestate)                       | ✅Implemented |
+| [useEffect](https://reactjs.org/docs/hooks-reference.html#useeffect)                     | ✅Implemented |
+| [useContext](https://reactjs.org/docs/hooks-reference.html#usecontext)                   | ❌Not planned |
+| [useReducer](https://reactjs.org/docs/hooks-reference.html#usereducer)                   | ⚠️Planned     |
+| [useCallback](https://reactjs.org/docs/hooks-reference.html#usecallback)                 | ✅Implemented |
+| [useMemo](https://reactjs.org/docs/hooks-reference.html#usememo)                         | ✅Implemented |
+| [useRef](https://reactjs.org/docs/hooks-reference.html#useref)                           | ✅Implemented |
+| [useImperativeHandle](https://reactjs.org/docs/hooks-reference.html#useimperativehandle) | ❌Not planned |
+| [useLayoutEffect](https://reactjs.org/docs/hooks-reference.html#uselayouteffect)         | ❌Not planned |
+| [useDebugValue](https://reactjs.org/docs/hooks-reference.html#usedebugvalue)             | ❌Not planned |
 
 ---
 
