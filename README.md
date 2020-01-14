@@ -6,6 +6,10 @@ A JavaScript library for reactive programming using React-like Hooks.
 
 - **Small.** 1.18 KB (minified and gzipped).
 - **No dependencies.** Not even React!
+- **Typed.** TypeScript declarations included.
+
+> Made for people who have not found access to the concept of asynchronous data
+> streams, which is the conceptual basis for libraries like RxJS.
 
 ## Installation
 
@@ -20,6 +24,22 @@ Using `npm`:
 ```
 npm install ironhook --save
 ```
+
+## Motivation
+
+Reactive programming is generally understood to be programming using
+asynchronous data streams, which form the conceptual basis for libraries like
+RxJS. I never found the right access to the concepts and APIs of said libraries.
+
+In React, the concept of so-called hooks has become the standard pattern for
+programming stateful, reactive functional components.
+
+In contrast to the concept of streams, the concept of hooks was something I
+liked from the beginning. I find them very intuitive to write and read.
+
+I wanted to use this kind of reactive programming also in other areas, for
+example for the programming of web workers or server components. Therefore I
+wrote this library.
 
 ## Usage Example
 
