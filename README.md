@@ -110,23 +110,21 @@ function run<TResult>(
 
 ### Implementation Status
 
-Below you can see the reimplementation status of the various Hooks built into
+Below you can see the implementation status of the various Hooks built into
 React:
 
-| Hook                                                                                     | Status               |
-| ---------------------------------------------------------------------------------------- | -------------------- |
-| [useState](https://reactjs.org/docs/hooks-reference.html#usestate)                       | ✅Implemented        |
-| [useEffect](https://reactjs.org/docs/hooks-reference.html#useeffect)                     | ✅Implemented        |
-| [useContext](https://reactjs.org/docs/hooks-reference.html#usecontext)                   | ❌Not planned        |
-| [useReducer](https://reactjs.org/docs/hooks-reference.html#usereducer)                   | ⚠️[Planned][issue11] |
-| [useCallback](https://reactjs.org/docs/hooks-reference.html#usecallback)                 | ✅Implemented        |
-| [useMemo](https://reactjs.org/docs/hooks-reference.html#usememo)                         | ✅Implemented        |
-| [useRef](https://reactjs.org/docs/hooks-reference.html#useref)                           | ✅Implemented        |
-| [useImperativeHandle](https://reactjs.org/docs/hooks-reference.html#useimperativehandle) | ❌Not planned        |
-| [useLayoutEffect](https://reactjs.org/docs/hooks-reference.html#uselayouteffect)         | ❌Not planned        |
-| [useDebugValue](https://reactjs.org/docs/hooks-reference.html#usedebugvalue)             | ❌Not planned        |
-
-[issue11]: https://github.com/clebert/ironhook/issues/11
+| Hook                                                                                     | Status        |
+| ---------------------------------------------------------------------------------------- | ------------- |
+| [useState](https://reactjs.org/docs/hooks-reference.html#usestate)                       | ✅Implemented |
+| [useEffect](https://reactjs.org/docs/hooks-reference.html#useeffect)                     | ✅Implemented |
+| [useContext](https://reactjs.org/docs/hooks-reference.html#usecontext)                   | ❌Not planned |
+| [useReducer](https://reactjs.org/docs/hooks-reference.html#usereducer)                   | ✅Implemented |
+| [useCallback](https://reactjs.org/docs/hooks-reference.html#usecallback)                 | ✅Implemented |
+| [useMemo](https://reactjs.org/docs/hooks-reference.html#usememo)                         | ✅Implemented |
+| [useRef](https://reactjs.org/docs/hooks-reference.html#useref)                           | ✅Implemented |
+| [useImperativeHandle](https://reactjs.org/docs/hooks-reference.html#useimperativehandle) | ❌Not planned |
+| [useLayoutEffect](https://reactjs.org/docs/hooks-reference.html#uselayouteffect)         | ❌Not planned |
+| [useDebugValue](https://reactjs.org/docs/hooks-reference.html#usedebugvalue)             | ❌Not planned |
 
 ## Development
 
