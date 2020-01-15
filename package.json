@@ -2,6 +2,14 @@
   "name": "ironhook",
   "version": "0.2.0",
   "description": "A JavaScript library for reactive programming using React-like Hooks.",
+  "keywords": [
+    "async",
+    "asynchronous",
+    "hook",
+    "hooks",
+    "react",
+    "reactive"
+  ],
   "bugs": {
     "url": "https://github.com/clebert/ironhook/issues"
   },
