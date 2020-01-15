@@ -12,13 +12,13 @@ export type Dispatch<TAction> = (action: TAction) => void;
 export function useReducer<TState, TAction>(
   reducer: Reducer<TState, TAction>,
   initialArg: TState
-): void;
+): [TState, Dispatch<TAction>];
 
 export function useReducer<TArg, TState, TAction>(
   reducer: Reducer<TState, TAction>,
   initialArg: TArg,
   init: Init<TArg, TState>
-): void;
+): [TState, Dispatch<TAction>];
 
 export function useReducer<TArg, TState, TAction>(
   reducer: Reducer<TState, TAction>,
