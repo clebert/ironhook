@@ -790,8 +790,8 @@ describe('run()', () => {
     const runningHook = run(() => {
       const [state, dispatch] = useReducer(
         reducer,
-        44,
-        initialState => initialState - 22
+        '44',
+        initialArg => parseInt(initialArg, 10) - 22
       );
 
       useEffect(() => {

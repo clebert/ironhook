@@ -6,7 +6,7 @@ export type Reducer<TState, TAction> = (
   action: TAction
 ) => TState;
 
-export type Init<TArg, TState> = (initialState: TArg) => TState;
+export type Init<TArg, TState> = (initialArg: TArg) => TState;
 export type Dispatch<TAction> = (action: TAction) => void;
 
 export function useReducer<TState, TAction>(
