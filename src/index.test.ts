@@ -1,7 +1,16 @@
-import {run, useCallback, useEffect, useRef, useState} from '.';
+import {
+  Reducer,
+  run,
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState
+} from '.';
 import {queueMacrotask} from './utils/queue-macrotask';
 
 describe('run()', () => {
+  const reducer: Reducer<number, number> = (state, action) => state + action;
   const error = new Error('Oops!');
 
   let onResult: jest.Mock;
@@ -757,5 +766,79 @@ describe('run()', () => {
     await runningHook.promise;
 
     expect(onResult.mock.calls).toEqual([[1], [2]]);
+  });
+
+  test('reducer with initial state', async () => {
+    const runningHook = run(() => {
+      const [state, dispatch] = useReducer(reducer, 22);
+
+      useEffect(() => {
+        dispatch(-2);
+        dispatch(10);
+      }, []);
+
+      return state;
+    }, onResult);
+
+    await queueMacrotask(() => runningHook.stop());
+    await runningHook.promise;
+
+    expect(onResult.mock.calls).toEqual([[22], [30]]);
+  });
+
+  test('reducer with lazy initial state', async () => {
+    const runningHook = run(() => {
+      const [state, dispatch] = useReducer(
+        reducer,
+        44,
+        initialState => initialState - 22
+      );
+
+      useEffect(() => {
+        dispatch(-2);
+        dispatch(10);
+      }, []);
+
+      return state;
+    }, onResult);
+
+    await queueMacrotask(() => runningHook.stop());
+    await runningHook.promise;
+
+    expect(onResult.mock.calls).toEqual([[22], [30]]);
+  });
+
+  test('failing reducer function', async () => {
+    const runningHook = run(() => {
+      const [state, dispatch] = useReducer(() => {
+        throw error;
+      }, 0);
+
+      dispatch(1);
+
+      return state;
+    }, onResult);
+
+    await runningHook.promise.catch(onError);
+
+    expect(onResult.mock.calls).toEqual([[0]]);
+    expect(onError.mock.calls).toEqual([[error]]);
+  });
+
+  test('stable dispatch() identity', async () => {
+    const runningHook = run(() => {
+      const [state, dispatch] = useReducer(reducer, 0);
+
+      useEffect(() => {
+        dispatch(1);
+      }, [dispatch]);
+
+      return state;
+    }, onResult);
+
+    await queueMacrotask(() => runningHook.stop());
+    await runningHook.promise;
+
+    expect(onResult.mock.calls).toEqual([[0], [1]]);
   });
 });
