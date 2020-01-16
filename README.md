@@ -35,17 +35,18 @@ npm install ironhook --save
 
 Reactive programming is generally understood to be programming using
 asynchronous data streams, which form the conceptual basis for libraries like
-RxJS. I never found the right access to the concepts and APIs of said libraries.
+[RxJS][rxjs] or [xstream][xstream]. I never found the right access to the
+concepts and APIs of said libraries.
 
-In React, the concept of so-called Hooks has become the standard pattern for
-programming stateful, reactive functional components.
+In React, Hooks provide the ability to program stateful, **reactive** functional
+components. In contrast to the concept of streams, the concept of Hooks was
+something I liked from the beginning. I find them very intuitive to read and
+write. I wanted to use this kind of reactive programming in other areas as well,
+for example for programming web workers, AWS Lambda handlers, or even
+JavaScript-controlled robots. Therefore I wrote this library.
 
-In contrast to the concept of streams, the concept of Hooks was something I
-liked from the beginning. I find them very intuitive to write and read.
-
-I wanted to use this kind of reactive programming also in other areas, for
-example for the programming of web workers or server components. Therefore I
-wrote this library.
+[rxjs]: https://github.com/ReactiveX/rxjs
+[xstream]: https://github.com/staltz/xstream
 
 ## Usage Example
 
