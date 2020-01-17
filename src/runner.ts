@@ -186,9 +186,9 @@ export class Runner<TResult> {
         this.cleanUpEffects(true);
         this.listener.onStopped(error);
       })
-      .catch(error =>
+      .catch(
         /* istanbul ignore next */
-        console.error('Error while stopping runner.', error)
+        error => console.error('Error while stopping runner.', error)
       );
   }
 
