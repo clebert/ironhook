@@ -66,11 +66,11 @@ function useName() {
   return name;
 }
 
-run(useName, name => {
+const runningHook = run(useName, name => {
   console.log(`Hello, ${name}!`);
-}).promise.catch(error => {
-  console.error(error);
 });
+
+runningHook.promise.catch(error => console.error(error));
 ```
 
 Output:
@@ -83,20 +83,37 @@ Hello, World!
 ## API Reference
 
 The [React Hooks API reference](https://reactjs.org/docs/hooks-reference.html)
-also applies to this library and can be consulted. The main difference to React
-is that this library executes a Hook (aka `mainHook`) directly without a
-surrounding function component. The first execution is scheduled as a macrotask
-after `run(mainHook, onResult)` is called. The respective result of an execution
-is forwarded to the `onResult(result)` handler as long as the result is not
-`undefined`. All further executions can be initiated internally by using the
-`useState` Hook. The `mainHook` continues to run, i.e. it holds the state and
-reacts to state changes until an error is thrown or the `stop()` method is
-called. An error or stop has the same effect as unmounting a React function
-component.
+also applies to this library and should be consulted.
+
+The main difference to React is that this library executes a Hook (aka
+`mainHook`) directly without a surrounding function component. The first
+execution is scheduled as a macrotask after `run(mainHook, onResult)` is called.
+The respective result of an execution is forwarded to the `onResult(result)`
+handler as long as the result is not `undefined`. All further executions can be
+initiated internally with the `useState` or `useReducer` Hook. The `mainHook`
+continues to run, i.e. it maintains its state and is re-executed on state
+changes until an error is thrown or the `RunningHook.stop()` method is called.
+An error or stop has the same effect as unmounting a React function component.
+
+### Error Handling
+
+To catch asynchronous errors, it is important to call the
+`Promise.catch(onRejected)` method immediately after calling
+`run(mainHook, onResult)`, or to wait for the Promise in a try-catch block via
+`await`.
+
+```js
+const runningHook = run(mainHook, onResult);
+
+runningHook.promise.catch(error => console.error(error));
+```
 
 ### Types
 
 ```ts
+type RunnableHook<TResult> = () => TResult | undefined;
+type OnResult<TResult> = (result: TResult) => void;
+
 interface RunningHook {
   readonly promise: Promise<void>;
 
@@ -104,8 +121,8 @@ interface RunningHook {
 }
 
 function run<TResult>(
-  mainHook: () => TResult | undefined,
-  onResult: (result: TResult) => void
+  mainHook: RunnableHook<TResult>,
+  onResult: OnResult<TResult>
 ): RunningHook;
 ```
 

@@ -10,8 +10,8 @@ function useName() {
   return name;
 }
 
-run(useName, name => {
+const runningHook = run(useName, name => {
   console.log(`Hello, ${name}!`);
-}).promise.catch(error => {
-  console.error(error);
 });
+
+runningHook.promise.catch(error => console.error(error));
