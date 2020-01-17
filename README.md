@@ -85,6 +85,8 @@ Hello, World!
 The [React Hooks API reference](https://reactjs.org/docs/hooks-reference.html)
 also applies to this library and should be consulted.
 
+### Implementation Notes
+
 The main difference to React is that this library executes a Hook (aka
 `mainHook`) directly without a surrounding function component. The first
 execution is scheduled as a macrotask after `run(mainHook, onResult)` is called.
