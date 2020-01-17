@@ -141,6 +141,8 @@ To catch asynchronous errors, it is important to call the
 `run(mainHook, onResult)`, or to wait for the Promise in a try-catch block via
 `await`.
 
+Example:
+
 ```js
 const runningHook = run(mainHook, onResult);
 
@@ -150,19 +152,26 @@ runningHook.promise.catch(error => console.error(error));
 ### Types
 
 ```ts
-type RunnableHook<TResult> = () => TResult | undefined;
-type OnResult<TResult> = (result: TResult) => void;
+function run<TResult>(
+  mainHook: RunnableHook<TResult>,
+  onResult: OnResult<TResult>
+): RunningHook;
+```
 
+```ts
+type RunnableHook<TResult> = () => TResult | undefined;
+```
+
+```ts
+type OnResult<TResult> = (result: TResult) => void;
+```
+
+```ts
 interface RunningHook {
   readonly promise: Promise<void>;
 
   stop(): void;
 }
-
-function run<TResult>(
-  mainHook: RunnableHook<TResult>,
-  onResult: OnResult<TResult>
-): RunningHook;
 ```
 
 ## Development
