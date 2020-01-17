@@ -35,15 +35,22 @@ npm install ironhook --save
 
 Reactive programming is generally understood to be programming using
 asynchronous data streams, which form the conceptual basis for libraries like
-[RxJS][rxjs] or [xstream][xstream]. I never found the right access to the
-concepts and APIs of said libraries.
+[RxJS][rxjs] or [xstream][xstream]. In React, however, reactive programming is
+not about dealing with streams, but with so-called
+[Hooks](https://reactjs.org/docs/hooks-intro.html#motivation).
 
-In React, Hooks provide the ability to program stateful, **reactive** functional
-components. In contrast to the concept of streams, the concept of Hooks was
-something I liked from the beginning. I find them very intuitive to read and
-write. I wanted to use this kind of reactive programming in other areas as well,
-for example for programming web workers, AWS Lambda handlers, or even
-JavaScript-controlled robots. Therefore I wrote this library.
+A component is rendered, whereby side effects are declared based on its current
+state (using the
+[`useEffect`](https://reactjs.org/docs/hooks-overview.html#effect-hook) Hook),
+which in turn can lead to state changes (using the
+[`useState`](https://reactjs.org/docs/hooks-overview.html#state-hook) Hook) and
+thus to further renderings.
+
+In contrast to the concept of streams, the concept of Hooks was something I
+liked from the beginning. I find them very intuitive to read and write. I wanted
+to use this kind of reactive programming in other areas as well, for example for
+programming web workers, AWS Lambda handlers, or even JavaScript-controlled
+robots. Therefore I wrote this library.
 
 [rxjs]: https://github.com/ReactiveX/rxjs
 [xstream]: https://github.com/staltz/xstream
@@ -90,18 +97,18 @@ also applies to this library and should be consulted.
 Below you can see the implementation status of the various Hooks built into
 React:
 
-| Hook                                       |                                        | Status        |
-| ------------------------------------------ | -------------------------------------- | ------------- |
-| [useState][usestate]                       | `import {useState} from 'ironhook'`    | ✅Implemented |
-| [useEffect][useeffect]                     | `import {useEffect} from 'ironhook'`   | ✅Implemented |
-| [useReducer][usereducer]                   | `import {useReducer} from 'ironhook'`  | ✅Implemented |
-| [useCallback][usecallback]                 | `import {useCallback} from 'ironhook'` | ✅Implemented |
-| [useMemo][usememo]                         | `import {useMemo} from 'ironhook'`     | ✅Implemented |
-| [useRef][useref]                           | `import {useRef} from 'ironhook'`      | ✅Implemented |
-| [useContext][usecontext]                   |                                        | ❌Not planned |
-| [useImperativeHandle][useimperativehandle] |                                        | ❌Not planned |
-| [useLayoutEffect][uselayouteffect]         |                                        | ❌Not planned |
-| [useDebugValue][usedebugvalue]             |                                        | ❌Not planned |
+| Hook                                         |                                        | Status        |
+| -------------------------------------------- | -------------------------------------- | ------------- |
+| [`useState`][usestate]                       | `import {useState} from 'ironhook'`    | ✅Implemented |
+| [`useEffect`][useeffect]                     | `import {useEffect} from 'ironhook'`   | ✅Implemented |
+| [`useReducer`][usereducer]                   | `import {useReducer} from 'ironhook'`  | ✅Implemented |
+| [`useCallback`][usecallback]                 | `import {useCallback} from 'ironhook'` | ✅Implemented |
+| [`useMemo`][usememo]                         | `import {useMemo} from 'ironhook'`     | ✅Implemented |
+| [`useRef`][useref]                           | `import {useRef} from 'ironhook'`      | ✅Implemented |
+| [`useContext`][usecontext]                   |                                        | ❌Not planned |
+| [`useImperativeHandle`][useimperativehandle] |                                        | ❌Not planned |
+| [`useLayoutEffect`][uselayouteffect]         |                                        | ❌Not planned |
+| [`useDebugValue`][usedebugvalue]             |                                        | ❌Not planned |
 
 [usestate]: https://reactjs.org/docs/hooks-reference.html#usestate
 [useeffect]: https://reactjs.org/docs/hooks-reference.html#useeffect
