@@ -85,6 +85,36 @@ Hello, World!
 The [React Hooks API reference](https://reactjs.org/docs/hooks-reference.html)
 also applies to this library and should be consulted.
 
+### Implementation Status
+
+Below you can see the implementation status of the various Hooks built into
+React:
+
+| Hook                                       |                                        | Status        |
+| ------------------------------------------ | -------------------------------------- | ------------- |
+| [useState][usestate]                       | `import {useState} from 'ironhook'`    | ✅Implemented |
+| [useEffect][useeffect]                     | `import {useEffect} from 'ironhook'`   | ✅Implemented |
+| [useReducer][usereducer]                   | `import {useReducer} from 'ironhook'`  | ✅Implemented |
+| [useCallback][usecallback]                 | `import {useCallback} from 'ironhook'` | ✅Implemented |
+| [useMemo][usememo]                         | `import {useMemo} from 'ironhook'`     | ✅Implemented |
+| [useRef][useref]                           | `import {useRef} from 'ironhook'`      | ✅Implemented |
+| [useContext][usecontext]                   |                                        | ❌Not planned |
+| [useImperativeHandle][useimperativehandle] |                                        | ❌Not planned |
+| [useLayoutEffect][uselayouteffect]         |                                        | ❌Not planned |
+| [useDebugValue][usedebugvalue]             |                                        | ❌Not planned |
+
+[usestate]: https://reactjs.org/docs/hooks-reference.html#usestate
+[useeffect]: https://reactjs.org/docs/hooks-reference.html#useeffect
+[usecontext]: https://reactjs.org/docs/hooks-reference.html#usecontext
+[usereducer]: https://reactjs.org/docs/hooks-reference.html#usereducer
+[usecallback]: https://reactjs.org/docs/hooks-reference.html#usecallback
+[usememo]: https://reactjs.org/docs/hooks-reference.html#usememo
+[useref]: https://reactjs.org/docs/hooks-reference.html#useref
+[useimperativehandle]:
+  https://reactjs.org/docs/hooks-reference.html#useimperativehandle
+[uselayouteffect]: https://reactjs.org/docs/hooks-reference.html#uselayouteffect
+[usedebugvalue]: https://reactjs.org/docs/hooks-reference.html#usedebugvalue
+
 ### Implementation Notes
 
 The main difference to React is that this library executes a Hook (aka
@@ -127,24 +157,6 @@ function run<TResult>(
   onResult: OnResult<TResult>
 ): RunningHook;
 ```
-
-### Implementation Status
-
-Below you can see the implementation status of the various Hooks built into
-React:
-
-| Hook                                                                                     | Status        |
-| ---------------------------------------------------------------------------------------- | ------------- |
-| [useState](https://reactjs.org/docs/hooks-reference.html#usestate)                       | ✅Implemented |
-| [useEffect](https://reactjs.org/docs/hooks-reference.html#useeffect)                     | ✅Implemented |
-| [useContext](https://reactjs.org/docs/hooks-reference.html#usecontext)                   | ❌Not planned |
-| [useReducer](https://reactjs.org/docs/hooks-reference.html#usereducer)                   | ✅Implemented |
-| [useCallback](https://reactjs.org/docs/hooks-reference.html#usecallback)                 | ✅Implemented |
-| [useMemo](https://reactjs.org/docs/hooks-reference.html#usememo)                         | ✅Implemented |
-| [useRef](https://reactjs.org/docs/hooks-reference.html#useref)                           | ✅Implemented |
-| [useImperativeHandle](https://reactjs.org/docs/hooks-reference.html#useimperativehandle) | ❌Not planned |
-| [useLayoutEffect](https://reactjs.org/docs/hooks-reference.html#uselayouteffect)         | ❌Not planned |
-| [useDebugValue](https://reactjs.org/docs/hooks-reference.html#usedebugvalue)             | ❌Not planned |
 
 ## Development
 
