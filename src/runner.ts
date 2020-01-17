@@ -43,16 +43,16 @@ interface MemoMemoryCell<TValue> {
 type MemoryCell = EffectMemoryCell | StateMemoryCell<any> | MemoMemoryCell<any>;
 
 export class Runner<TResult> {
-  private static current: Runner<unknown> | undefined;
+  private static active: Runner<unknown> | undefined;
 
-  public static getCurrent(): Runner<unknown> {
-    if (!Runner.current) {
+  public static getActive(): Runner<unknown> {
+    if (!Runner.active) {
       throw new Error(
         'Hooks can only be called inside the body of a parent hook.'
       );
     }
 
-    return Runner.current;
+    return Runner.active;
   }
 
   private readonly memory: MemoryCell[] = [];
@@ -69,7 +69,7 @@ export class Runner<TResult> {
 
   public useEffect(effect: Effect, dependencies: unknown[] | undefined): void {
     /* istanbul ignore next */
-    if (this !== Runner.current) {
+    if (this !== Runner.active) {
       throw new Error(
         'Please use the separately exported useEffect() function.'
       );
@@ -100,7 +100,7 @@ export class Runner<TResult> {
     initialState: TState | CreateInitialState<TState>
   ): [TState, SetState<TState>] {
     /* istanbul ignore next */
-    if (this !== Runner.current) {
+    if (this !== Runner.active) {
       throw new Error(
         'Please use the separately exported useState() function.'
       );
@@ -134,7 +134,7 @@ export class Runner<TResult> {
     dependencies: unknown[]
   ): TValue {
     /* istanbul ignore next */
-    if (this !== Runner.current) {
+    if (this !== Runner.active) {
       throw new Error('Please use the separately exported useMemo() function.');
     }
 
@@ -186,14 +186,9 @@ export class Runner<TResult> {
         this.cleanUpEffects(true);
         this.listener.onStopped(error);
       })
-      .catch(
+      .catch(error =>
         /* istanbul ignore next */
-        error => {
-          console.error(
-            'Please use the separately exported run() function.',
-            error
-          );
-        }
+        console.error('Error while stopping runner.', error)
       );
   }
 
@@ -213,7 +208,7 @@ export class Runner<TResult> {
   }
 
   private execute(): void {
-    Runner.current = this;
+    Runner.active = this;
 
     try {
       this.memoryPointer = 0;
@@ -230,7 +225,7 @@ export class Runner<TResult> {
         this.listener.onResult(result);
       }
     } finally {
-      Runner.current = undefined;
+      Runner.active = undefined;
     }
   }
 
