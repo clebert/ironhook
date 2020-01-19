@@ -1,17 +1,19 @@
-const {run, useEffect, useState} = require('./lib');
+const {Subject, useEffect, useState} = require('./lib');
 
 function useName() {
-  const [name, setName] = useState('John Doe');
+  const [name, setName] = useState('World');
 
   useEffect(() => {
-    setTimeout(() => setName('World'), 10);
+    setTimeout(() => setName('John Doe'), 10);
   }, []);
 
   return name;
 }
 
-const runningHook = run(useName, name => {
-  console.log(`Hello, ${name}!`);
-});
+const subject = new Subject(useName);
 
-runningHook.promise.catch(error => console.error(error));
+subject.subscribe({
+  next: name => console.log(`Hello, ${name}!`),
+  error: error => console.error('Oops!', error),
+  complete: () => console.log('Bye.')
+});

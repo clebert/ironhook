@@ -1,15 +1,15 @@
 import {areHookInputsEqual} from './utils/are-hook-inputs-equal';
 import {isFunction} from './utils/is-function';
 import {isKindOf} from './utils/is-kind-of';
-import {queueMacrotask} from './utils/queue-macrotask';
 
-export type RunnableHook<TResult> = () => TResult | undefined;
-
-export interface Listener<TResult> {
-  onResult(result: TResult): void;
-  onStopped(error?: Error): void;
+export interface Observer<TValue> {
+  next(value: TValue): void;
+  error(error: Error): void;
+  complete(): void;
 }
 
+export type Unsubscribe = () => void;
+export type MainHook<TValue> = () => TValue;
 export type CleanUpEffect = () => void;
 export type Effect = () => CleanUpEffect | void;
 export type CreateInitialState<TState> = () => TState;
@@ -42,34 +42,68 @@ interface MemoMemoryCell<TValue> {
 
 type MemoryCell = EffectMemoryCell | StateMemoryCell<any> | MemoMemoryCell<any>;
 
-export class Runner<TResult> {
-  private static active: Runner<unknown> | undefined;
+export class Subject<TValue> {
+  private static active: Subject<unknown> | undefined;
 
-  public static getActive(): Runner<unknown> {
-    if (!Runner.active) {
+  public static getActive(): Subject<unknown> {
+    if (!Subject.active) {
       throw new Error(
-        'Hooks can only be called inside the body of a parent hook.'
+        'Hooks can only be called inside the body of the main hook.'
       );
     }
 
-    return Runner.active;
+    return Subject.active;
   }
 
   private readonly memory: MemoryCell[] = [];
 
+  private observers: Set<Observer<TValue>> | undefined = new Set<
+    Observer<TValue>
+  >();
+
+  public readonly completion: Promise<void>;
+
+  private resolveCompletion!: () => void;
   private memoryAllocated = false;
   private memoryPointer = 0;
-  private stopped = false;
-  private running = false;
 
-  public constructor(
-    private readonly mainHook: RunnableHook<TResult>,
-    private readonly listener: Listener<TResult>
-  ) {}
+  public constructor(private readonly mainHook: MainHook<TValue>) {
+    this.completion = new Promise<void>(
+      resolve => (this.resolveCompletion = resolve)
+    );
+  }
 
-  public useEffect(effect: Effect, dependencies: unknown[] | undefined): void {
-    /* istanbul ignore next */
-    if (this !== Runner.active) {
+  public subscribe(observer: Observer<TValue>): Unsubscribe {
+    this.observers?.add(observer);
+
+    this.run();
+
+    return () => this.observers?.delete(observer);
+  }
+
+  public complete(): void {
+    const observers = this.observers;
+
+    if (!observers) {
+      return;
+    }
+
+    for (const observer of observers) {
+      try {
+        observer.complete();
+      } catch (error) {
+        console.error('Error while completion.', error);
+      }
+    }
+
+    this.observers = undefined;
+
+    this.cleanUpEffects(true);
+    this.resolveCompletion();
+  }
+
+  public useEffect(effect: Effect, dependencies?: unknown[]): void {
+    if (this !== Subject.active) {
       throw new Error(
         'Please use the separately exported useEffect() function.'
       );
@@ -99,8 +133,7 @@ export class Runner<TResult> {
   public useState<TState>(
     initialState: TState | CreateInitialState<TState>
   ): [TState, SetState<TState>] {
-    /* istanbul ignore next */
-    if (this !== Runner.active) {
+    if (this !== Subject.active) {
       throw new Error(
         'Please use the separately exported useState() function.'
       );
@@ -115,7 +148,8 @@ export class Runner<TResult> {
         kind: 'StateMemoryCell',
         setState: state => {
           memoryCell!.stateChanges = [...memoryCell!.stateChanges, state];
-          this.scheduleRun();
+
+          this.run();
         },
         state: isFunction<CreateInitialState<TState>>(initialState)
           ? initialState()
@@ -133,8 +167,7 @@ export class Runner<TResult> {
     createValue: () => TValue,
     dependencies: unknown[]
   ): TValue {
-    /* istanbul ignore next */
-    if (this !== Runner.active) {
+    if (this !== Subject.active) {
       throw new Error('Please use the separately exported useMemo() function.');
     }
 
@@ -158,62 +191,55 @@ export class Runner<TResult> {
     return memoryCell.value;
   }
 
-  public scheduleRun(): void {
-    if (this.running) {
-      return;
-    }
-
-    queueMacrotask(() => {
-      if (this.stopped) {
-        return;
-      }
-
-      this.running = true;
-      this.run();
-      this.running = false;
-    }).catch(error => this.stop(error));
-  }
-
-  public stop(error?: Error): void {
-    if (this.stopped) {
-      return;
-    }
-
-    this.stopped = true;
-
-    Promise.resolve()
-      .then(() => {
-        this.cleanUpEffects(true);
-        this.listener.onStopped(error);
-      })
-      .catch(
-        /* istanbul ignore next */
-        error => console.error('Error while stopping runner.', error)
-      );
-  }
-
   private run(): void {
-    if (!this.memoryAllocated || this.applyStateChanges()) {
-      do {
-        this.execute();
+    Promise.resolve().then(() => {
+      try {
+        if (!this.memoryAllocated || this.applyStateChanges()) {
+          do {
+            this.execute();
 
-        while (this.applyStateChanges()) {
-          this.execute();
+            while (this.applyStateChanges()) {
+              this.execute();
+            }
+
+            this.cleanUpEffects();
+            this.triggerEffects();
+          } while (this.applyStateChanges());
+        }
+      } catch (error) {
+        const observers = this.observers;
+
+        if (!observers) {
+          return;
         }
 
-        this.cleanUpEffects();
-        this.triggerEffects();
-      } while (this.applyStateChanges());
-    }
+        for (const observer of observers) {
+          try {
+            observer.error(error);
+          } catch (error) {
+            console.error('Error while publishing error.', error);
+          }
+        }
+
+        this.observers = undefined;
+
+        this.cleanUpEffects(true);
+        this.resolveCompletion();
+      }
+    });
   }
 
   private execute(): void {
-    Runner.active = this;
+    if (!this.observers) {
+      return;
+    }
+
+    Subject.active = this;
 
     try {
       this.memoryPointer = 0;
 
-      const result = this.mainHook();
+      const value = this.mainHook();
 
       if (this.memoryPointer !== this.memory.length) {
         throw new Error('The number of hook calls must not change.');
@@ -221,11 +247,15 @@ export class Runner<TResult> {
 
       this.memoryAllocated = true;
 
-      if (result !== undefined) {
-        this.listener.onResult(result);
+      for (const observer of this.observers) {
+        try {
+          observer.next(value);
+        } catch (error) {
+          console.error('Error while publishing value.', error);
+        }
       }
     } finally {
-      Runner.active = undefined;
+      Subject.active = undefined;
     }
   }
 

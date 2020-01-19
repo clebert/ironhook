@@ -61,30 +61,32 @@ The following is a constructed example that demonstrates the use of this
 library:
 
 ```js
-import {run, useEffect, useState} from 'ironhook';
+import {Subject, useEffect, useState} from 'ironhook';
 
 function useName() {
-  const [name, setName] = useState('John Doe');
+  const [name, setName] = useState('World');
 
   useEffect(() => {
-    setTimeout(() => setName('World'), 10);
+    setTimeout(() => setName('John Doe'), 10);
   }, []);
 
   return name;
 }
 
-const runningHook = run(useName, name => {
-  console.log(`Hello, ${name}!`);
-});
+const subject = new Subject(useName);
 
-runningHook.promise.catch(error => console.error(error));
+subject.subscribe({
+  next: name => console.log(`Hello, ${name}!`),
+  error: error => console.error('Oops!', error),
+  complete: () => console.log('Bye.')
+});
 ```
 
 Output:
 
 ```
-Hello, John Doe!
 Hello, World!
+Hello, John Doe!
 ```
 
 ## API Reference
@@ -94,7 +96,7 @@ also applies to this library and should be consulted.
 
 ### Implementation Status
 
-Below you can see the implementation status of the various Hooks built into
+Below you can see the implementation status of the various Hooks provided by
 React:
 
 | Hook                                         |                                        | Status        |
@@ -124,55 +126,56 @@ React:
 
 ### Implementation Notes
 
-The main difference to React is that this library executes a Hook (aka
-`mainHook`) directly without a surrounding function component. The first
-execution is scheduled as a macrotask after `run(mainHook, onResult)` is called.
-The respective result of an execution is forwarded to the `onResult(result)`
-handler as long as the result is not `undefined`. All further executions can be
-initiated internally with the `useState` or `useReducer` Hook. The `mainHook`
-continues to run, i.e. it maintains its state and is re-executed on state
-changes until an error is thrown or the `RunningHook.stop()` method is called.
-An error or stop has the same effect as unmounting a React function component.
+This library implements the
+[observer pattern](https://en.wikipedia.org/wiki/Observer_pattern):
 
-### Error Handling
+> The observer pattern is a software design pattern in which an object, called
+> the subject, maintains a list of its dependents, called observers, and
+> notifies them automatically of any state changes, usually by calling one of
+> their methods.
 
-To catch asynchronous errors, it is important to call the
-`Promise.catch(onRejected)` method immediately after calling
-`run(mainHook, onResult)`, or to wait for the Promise in a try-catch block via
-`await`.
-
-Example:
-
-```js
-const runningHook = run(mainHook, onResult);
-
-runningHook.promise.catch(error => console.error(error));
-```
+The main difference to React is that this library calls a Hook (aka `mainHook`)
+directly, without the need for a surrounding function component. The first
+execution of the `mainHook` is scheduled as a microtask (i.e. asynchronous)
+after the first call of `Subject.subscribe(observer)`. All further executions
+can be scheduled internally with the `useState` or `useReducer` Hooks. The
+`mainHook` continues to run, i.e. it maintains its state and is re-executed on
+state changes until an error is thrown or the `Subject.complete()` method is
+called. An error or completion has the same effect as unmounting a React
+function component.
 
 ### Types
 
 ```ts
-function run<TResult>(
-  mainHook: RunnableHook<TResult>,
-  onResult: OnResult<TResult>
-): RunningHook;
-```
+class Subject<TValue> {
+  readonly completion: Promise<void>;
 
-```ts
-type RunnableHook<TResult> = () => TResult | undefined;
-```
+  constructor(mainHook: MainHook<TValue>);
 
-```ts
-type OnResult<TResult> = (result: TResult) => void;
-```
-
-```ts
-interface RunningHook {
-  readonly promise: Promise<void>;
-
-  stop(): void;
+  subscribe(observer: Observer<TValue>): Unsubscribe;
+  complete(): void;
 }
 ```
+
+```ts
+type MainHook<TValue> = () => TValue;
+```
+
+```ts
+interface Observer<TValue> {
+  next(value: TValue): void;
+  error(error: Error): void;
+  complete(): void;
+}
+```
+
+```ts
+type Unsubscribe = () => void;
+```
+
+**Note:** The `Observer` interface is intentionally compatible with the
+[`Observer`](https://rxjs.dev/api/index/interface/Observer) from RxJS and the
+[`Listener`](http://staltz.github.io/xstream/#listener) from xstream.
 
 ## Development
 
