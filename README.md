@@ -148,6 +148,10 @@ function component.
 
 ```ts
 class Subject<TValue> {
+  /**
+   * This promise is resolved both in the case of an error
+   * and after normal completion.
+   */
   readonly completion: Promise<void>;
 
   constructor(mainHook: MainHook<TValue>);

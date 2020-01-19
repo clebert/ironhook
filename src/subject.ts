@@ -61,6 +61,10 @@ export class Subject<TValue> {
     Observer<TValue>
   >();
 
+  /**
+   * This promise is resolved both in the case of an error
+   * and after normal completion.
+   */
   public readonly completion: Promise<void>;
 
   private resolveCompletion!: () => void;
