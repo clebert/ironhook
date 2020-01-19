@@ -1,8 +1,8 @@
-import {Runner} from './runner';
+import {Subject} from './subject';
 
 export function useMemo<TValue>(
   createValue: () => TValue,
   dependencies: unknown[]
 ): TValue {
-  return Runner.getActive().useMemo(createValue, dependencies);
+  return Subject.getActive().useMemo(createValue, dependencies);
 }

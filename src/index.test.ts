@@ -1,21 +1,44 @@
 import {
   Reducer,
-  run,
+  Subject,
   useCallback,
   useEffect,
   useReducer,
   useRef,
   useState
 } from '.';
-import {queueMacrotask} from './utils/queue-macrotask';
 
-describe('run()', () => {
+interface MockObserver {
+  readonly next: jest.Mock;
+  readonly error: jest.Mock;
+  readonly complete: jest.Mock;
+}
+
+function createMockObserver(): MockObserver {
+  return {next: jest.fn(), error: jest.fn(), complete: jest.fn()};
+}
+
+function assertObserverCalls(
+  observer: MockObserver,
+  nextCalls: unknown[][],
+  errorCalls: unknown[][],
+  completeCalls: unknown[][]
+): void {
+  expect(observer.next.mock.calls).toEqual(nextCalls);
+  expect(observer.error.mock.calls).toEqual(errorCalls);
+  expect(observer.complete.mock.calls).toEqual(completeCalls);
+}
+
+function queueMicrotask(): Promise<void> {
+  return Promise.resolve().then();
+}
+
+describe('Subject', () => {
   const reducer: Reducer<number, number> = (state, action) => state + action;
-  const error = new Error('Oops!');
+  const customError = new Error('Oops!');
 
-  let onResult: jest.Mock;
-  let onError: jest.Mock;
   let consoleError: jest.SpyInstance;
+  let observer: MockObserver;
 
   beforeAll(() => {
     jest.setTimeout(50);
@@ -26,22 +49,146 @@ describe('run()', () => {
   });
 
   beforeEach(() => {
-    onResult = jest.fn();
-    onError = jest.fn();
     consoleError = jest.spyOn(console, 'error');
+    observer = createMockObserver();
   });
 
   afterEach(() => {
     consoleError.mockRestore();
   });
 
-  test('order of setState(), effect(), cleanUpEffect()', async () => {
-    const log = jest.fn();
+  test('asynchronous initial error', async () => {
+    const mainHook = jest.fn(() => {
+      throw customError;
+    });
 
-    const runningHook = run(() => {
+    const subject = new Subject<string>(mainHook);
+
+    const observer1 = createMockObserver();
+    const observer2 = createMockObserver();
+    const observer3 = createMockObserver();
+    const observer4 = createMockObserver();
+
+    await queueMicrotask();
+
+    expect(mainHook).toBeCalledTimes(0);
+
+    subject.subscribe(observer1);
+    subject.subscribe(observer2)();
+    subject.subscribe(observer3);
+
+    await queueMicrotask();
+
+    expect(mainHook).toBeCalledTimes(1);
+
+    subject.subscribe(observer4);
+
+    await queueMicrotask();
+    await subject.completion;
+
+    expect(mainHook).toBeCalledTimes(1);
+
+    assertObserverCalls(observer1, [], [[customError]], []);
+    assertObserverCalls(observer2, [], [], []);
+    assertObserverCalls(observer3, [], [[customError]], []);
+    assertObserverCalls(observer4, [], [], []);
+  });
+
+  test('asynchronous completion', async () => {
+    const cleanUpEffect = jest.fn();
+
+    const mainHook = jest.fn(() => {
       const [state, setState] = useState(0);
 
-      log('run', state);
+      useEffect(() => {
+        if (state < 3) {
+          queueMicrotask().then(() => {
+            setState(previousState => previousState + 1);
+            setState(previousState => previousState + 1);
+          });
+        }
+
+        return cleanUpEffect;
+      });
+
+      return state;
+    });
+
+    const subject = new Subject(mainHook);
+
+    const observer1 = createMockObserver();
+    const observer2 = createMockObserver();
+    const observer3 = createMockObserver();
+    const observer4 = createMockObserver();
+    const observer5 = createMockObserver();
+
+    await queueMicrotask();
+
+    expect(mainHook).toBeCalledTimes(0);
+
+    subject.subscribe(observer1);
+
+    const unsubscribe2 = subject.subscribe(observer2);
+
+    unsubscribe2();
+
+    const unsubscribe3 = subject.subscribe(observer3);
+
+    await queueMicrotask();
+
+    expect(mainHook).toBeCalledTimes(1);
+
+    subject.subscribe(observer4);
+
+    await queueMicrotask();
+
+    unsubscribe3();
+
+    subject.complete();
+    subject.complete();
+
+    expect(mainHook).toBeCalledTimes(2);
+
+    subject.subscribe(observer5);
+
+    await queueMicrotask();
+    await subject.completion;
+
+    expect(mainHook).toBeCalledTimes(2);
+    expect(cleanUpEffect).toBeCalledTimes(2);
+
+    assertObserverCalls(observer1, [[0], [2]], [], [[]]);
+    assertObserverCalls(observer2, [], [], []);
+    assertObserverCalls(observer3, [[0], [2]], [], []);
+    assertObserverCalls(observer4, [[2]], [], [[]]);
+    assertObserverCalls(observer5, [], [], []);
+  });
+
+  test('synchronous completion', async () => {
+    const mainHook = jest.fn();
+    const subject = new Subject(mainHook);
+    const observer = createMockObserver();
+
+    subject.subscribe(observer);
+
+    subject.complete();
+    subject.complete();
+
+    await queueMicrotask();
+    await subject.completion;
+
+    expect(mainHook).toBeCalledTimes(0);
+
+    assertObserverCalls(observer, [], [], [[]]);
+  });
+
+  test('sequence of setState, effect, and cleanUpEffect', async () => {
+    const log = jest.fn();
+
+    const subject = new Subject(() => {
+      const [state, setState] = useState(0);
+
+      log('mainHook', state);
 
       useEffect(() => {
         log('effect1', state);
@@ -64,7 +211,7 @@ describe('run()', () => {
         if (state === 4) {
           log('failing effect3', state);
 
-          throw error;
+          throw customError;
         } else {
           log('effect3', state);
         }
@@ -92,26 +239,25 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0], [1], [2], [4]]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    await subject.completion;
 
     expect(log.mock.calls).toEqual([
-      ['run', 0],
+      ['mainHook', 0],
       ['setState', 1],
-      ['run', 1],
+      ['mainHook', 1],
       ['effect1', 1],
       ['setState', 2],
       ['one-time effect2', 1],
       ['effect3', 1],
       ['effect4', 1],
-      ['run', 2],
+      ['mainHook', 2],
       ['setState', 3],
       ['setState', 4],
-      ['run', 4],
+      ['mainHook', 4],
       ['cleanup1'],
       ['cleanup3'],
       ['cleanup4'],
@@ -120,10 +266,12 @@ describe('run()', () => {
       ['cleanup1'],
       ['cleanup2']
     ]);
+
+    assertObserverCalls(observer, [[0], [1], [2], [4]], [[customError]], []);
   });
 
   test('error if the number of hook calls is changed (1)', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -132,19 +280,21 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The number of hook calls must not change.')]
-    ]);
+    const expectedError = new Error(
+      'The number of hook calls must not change.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
   test('error if the number of hook calls is changed (2)', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -154,19 +304,21 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The number of hook calls must not change.')]
-    ]);
+    const expectedError = new Error(
+      'The number of hook calls must not change.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
   test('error if the order of hook calls is changed', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -177,55 +329,59 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The order of hook calls must not change.')]
-    ]);
+    const expectedError = new Error('The order of hook calls must not change.');
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if an effect hook is called outside the body of a parent hook', async () => {
-    const runningHook = run(() => {
+  test('error if an effect hook is called outside the body of the main hook', async () => {
+    const subject = new Subject(() => {
       useEffect(() => {
         useEffect(jest.fn());
       });
 
       return 0;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('Hooks can only be called inside the body of a parent hook.')]
-    ]);
+    const expectedError = new Error(
+      'Hooks can only be called inside the body of the main hook.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if a state hook is called outside the body of a parent hook', async () => {
-    const runningHook = run(() => {
+  test('error if a state hook is called outside the body of the main hook', async () => {
+    const subject = new Subject(() => {
       useEffect(() => {
         useState(NaN);
       });
 
       return 0;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('Hooks can only be called inside the body of a parent hook.')]
-    ]);
+    const expectedError = new Error(
+      'Hooks can only be called inside the body of the main hook.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
   test('error if the existence of hook dependencies is changed (1)', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -236,19 +392,21 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The existence of hook dependencies must not change.')]
-    ]);
+    const expectedError = new Error(
+      'The existence of hook dependencies must not change.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
   test('error if the existence of hook dependencies is changed (2)', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -259,19 +417,21 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The existence of hook dependencies must not change.')]
-    ]);
+    const expectedError = new Error(
+      'The existence of hook dependencies must not change.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
   test('error if the number of hook dependencies is changed (1)', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -282,19 +442,21 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The order and number of hook dependencies must not change.')]
-    ]);
+    const expectedError = new Error(
+      'The order and number of hook dependencies must not change.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
   test('error if the number of hook dependencies is changed (2)', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       if (state === 0) {
@@ -305,39 +467,33 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await subject.completion;
 
-    expect(onError.mock.calls).toEqual([
-      [new Error('The order and number of hook dependencies must not change.')]
-    ]);
+    const expectedError = new Error(
+      'The order and number of hook dependencies must not change.'
+    );
+
+    assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('single run with result', async () => {
-    const runningHook = run(() => 0, onResult);
+  test('undefined value', async () => {
+    const subject = new Subject(() => undefined);
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
-  });
+    await queueMicrotask();
 
-  test('single run without result', async () => {
-    const runningHook = run(() => undefined, onResult);
-
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
-
-    expect(onResult.mock.calls).toEqual([]);
+    assertObserverCalls(observer, [[undefined]], [], []);
   });
 
   test('lazy initial state', async () => {
     const createInitialState = jest.fn(() => 0);
 
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(createInitialState);
 
       if (state === 0) {
@@ -345,99 +501,148 @@ describe('run()', () => {
       }
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0], [1]]);
+    await queueMicrotask();
+
     expect(createInitialState).toHaveBeenCalledTimes(1);
+
+    assertObserverCalls(observer, [[0], [1]], [], []);
   });
 
-  test('failing createInitialState()', async () => {
-    const runningHook = run(() => {
+  test('failing createInitialState', async () => {
+    const subject = new Subject(() => {
       useState(() => {
-        throw error;
+        throw customError;
       });
 
       return 0;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    await subject.completion;
+
+    assertObserverCalls(observer, [], [[customError]], []);
   });
 
-  test('failing createState()', async () => {
-    const runningHook = run(() => {
+  test('failing createState', async () => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       setState(() => {
-        throw error;
+        throw customError;
       });
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    await subject.completion;
+
+    assertObserverCalls(observer, [[0]], [[customError]], []);
   });
 
-  test('failing effect()', async () => {
-    const runningHook = run(() => {
+  test('failing effect', async () => {
+    const subject = new Subject(() => {
       useEffect(() => {
-        throw error;
+        throw customError;
       });
 
       return 0;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    await subject.completion;
+
+    assertObserverCalls(observer, [[0]], [[customError]], []);
   });
 
-  test('failing cleanUpEffect()', async () => {
+  test('failing cleanUpEffect', async () => {
     const cleanUpEffect = jest.fn();
 
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       useEffect(() => () => {
-        throw error;
+        throw customError;
       });
 
       useEffect(() => cleanUpEffect);
 
       return 0;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await queueMicrotask();
+
+    subject.complete();
+
     expect(cleanUpEffect).toHaveBeenCalledTimes(1);
 
     expect(consoleError.mock.calls).toEqual([
-      ['Error while cleaning up effect.', error]
+      ['Error while cleaning up effect.', customError]
     ]);
+
+    assertObserverCalls(observer, [[0]], [], [[]]);
   });
 
-  test('failing onResult()', async () => {
-    onResult.mockImplementation(() => {
-      throw error;
+  test('failing observer.next', async () => {
+    observer.next.mockImplementation(() => {
+      throw customError;
     });
 
-    const runningHook = run(() => {
-      return 0;
-    }, onResult);
+    const subject = new Subject(() => 0);
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    await queueMicrotask();
+
+    expect(consoleError.mock.calls).toEqual([
+      ['Error while publishing value.', customError]
+    ]);
+
+    assertObserverCalls(observer, [[0]], [], []);
+  });
+
+  test('failing observer.error', async () => {
+    observer.error.mockImplementation(() => {
+      throw customError;
+    });
+
+    const subject = new Subject(() => {
+      throw customError;
+    });
+
+    subject.subscribe(observer);
+
+    await subject.completion;
+
+    expect(consoleError.mock.calls).toEqual([
+      ['Error while publishing error.', customError]
+    ]);
+
+    assertObserverCalls(observer, [], [[customError]], []);
+  });
+
+  test('failing observer.complete', async () => {
+    observer.complete.mockImplementation(() => {
+      throw customError;
+    });
+
+    const subject = new Subject(jest.fn());
+
+    subject.subscribe(observer);
+    subject.complete();
+
+    expect(consoleError.mock.calls).toEqual([
+      ['Error while completion.', customError]
+    ]);
+
+    assertObserverCalls(observer, [], [], [[]]);
   });
 
   test('different hook inputs', async () => {
@@ -445,7 +650,7 @@ describe('run()', () => {
     const effect2 = jest.fn();
     const effect3 = jest.fn();
 
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       useEffect(() => {
@@ -459,116 +664,21 @@ describe('run()', () => {
       useEffect(effect3);
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0], [1], [2]]);
+    await queueMicrotask();
+
     expect(effect1).toHaveBeenCalledTimes(1);
     expect(effect2).toHaveBeenCalledTimes(2);
     expect(effect3).toHaveBeenCalledTimes(3);
+
+    assertObserverCalls(observer, [[0], [1], [2]], [], []);
   });
 
-  test('no more asynchronous results after immediate internal stop', async () => {
-    let asyncTask: Promise<void>;
-
-    const cleanUpEffect = jest.fn();
-
-    const runningHook = run(() => {
-      runningHook.stop();
-      runningHook.stop();
-
-      const [state, setState] = useState(0);
-
-      useEffect(() => {
-        setState(1);
-
-        asyncTask = queueMacrotask(() => setState(2));
-
-        return cleanUpEffect;
-      });
-
-      return state;
-    }, onResult);
-
-    await runningHook.promise;
-    await asyncTask!;
-
-    await queueMacrotask(() => {
-      expect(onResult.mock.calls).toEqual([[0], [1]]);
-      expect(cleanUpEffect).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  test('no results or effect calls after immediate external stop', async () => {
-    const effect = jest.fn();
-
-    const runningHook = run(() => {
-      const [state] = useState(0);
-
-      useEffect(effect);
-
-      return state;
-    }, onResult);
-
-    runningHook.stop();
-    runningHook.stop();
-
-    await runningHook.promise;
-
-    await queueMacrotask(() => {
-      expect(onResult.mock.calls).toEqual([]);
-      expect(effect).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  test('no more results or effect calls after error stop', async () => {
-    let asyncTask: Promise<void>;
-
-    const cleanUpEffect = jest.fn();
-
-    const runningHook = run(() => {
-      const [state, setState] = useState(0);
-
-      useEffect(() => {
-        setState(1);
-
-        asyncTask = queueMacrotask(() => setState(2));
-
-        return cleanUpEffect;
-      });
-
-      if (state === 1) {
-        throw error;
-      }
-
-      return state;
-    }, onResult);
-
-    await runningHook.promise.catch(onError);
-    await asyncTask!;
-
-    await queueMacrotask(() => {
-      expect(onResult.mock.calls).toEqual([[0]]);
-      expect(cleanUpEffect).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  test('no error after normal stop', async () => {
-    const runningHook = run(() => {
-      runningHook.stop();
-
-      throw error;
-    }, onResult);
-
-    await runningHook.promise;
-
-    expect(onResult.mock.calls).toEqual([]);
-  });
-
-  test('no more results without state change', async () => {
-    const runningHook = run(() => {
+  test('no state change', async () => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       setState(0);
@@ -576,19 +686,20 @@ describe('run()', () => {
       useEffect(() => {
         setState(0);
         setState(0);
-        queueMacrotask(() => runningHook.stop());
       });
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [[0]], [], []);
   });
 
-  test('several results after state changes', async () => {
-    const runningHook = run(() => {
+  test('state changes', async () => {
+    const subject = new Subject(() => {
       const [state1, setState1] = useState('a');
       const [state2, setState2] = useState('x');
 
@@ -596,57 +707,26 @@ describe('run()', () => {
         setState1('b');
       }
 
-      useEffect(() => {
-        if (state1 === 'b') {
-          setState2('y');
-        }
-      }, [state1]);
+      if (state1 === 'b') {
+        setState2('y');
+      }
 
-      useEffect(() => {
-        if (state2 === 'y') {
-          setState1('c');
-        }
-      }, [state2]);
+      if (state2 === 'y') {
+        setState1('c');
+      }
 
       return state1 + state2;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([['ax'], ['bx'], ['by'], ['cy']]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [['ax'], ['bx'], ['by'], ['cy']], [], []);
   });
 
-  test('asynchronous state changes', async () => {
-    const runningHook = run(() => {
-      const [state, setState] = useState(0);
-
-      useEffect(() => {
-        Promise.resolve().then(() => {
-          setState(previousState => previousState + 1);
-          setState(previousState => previousState + 1);
-        });
-      }, []);
-
-      useEffect(() => {
-        if (state === 2) {
-          Promise.resolve().then(() => {
-            setState(state);
-            queueMacrotask(() => runningHook.stop());
-          });
-        }
-      }, [state]);
-
-      return state;
-    }, onResult);
-
-    await runningHook.promise;
-
-    expect(onResult.mock.calls).toEqual([[0], [2]]);
-  });
-
-  test('parallel running hooks', async () => {
-    const runningHook1 = run(() => {
+  test('parallel subjects', async () => {
+    const subject1 = new Subject(() => {
       const [state, setState] = useState(0);
 
       useEffect(() => {
@@ -654,13 +734,13 @@ describe('run()', () => {
       }, []);
 
       return state;
-    }, onResult);
+    });
 
-    const runningHook2 = run(() => {
-      throw error;
-    }, onResult);
+    const subject2 = new Subject(() => {
+      throw customError;
+    });
 
-    const runningHook3 = run(() => {
+    const subject3 = new Subject(() => {
       const [state, setState] = useState(100);
 
       useEffect(() => {
@@ -668,22 +748,27 @@ describe('run()', () => {
       }, []);
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook2.promise.catch(onError);
+    subject1.subscribe(observer);
+    subject2.subscribe(observer);
+    subject3.subscribe(observer);
 
-    await queueMacrotask(() => runningHook1.stop());
-    await queueMacrotask(() => runningHook3.stop());
+    await subject2.completion;
 
-    await runningHook1.promise;
-    await runningHook3.promise;
+    subject1.complete();
+    subject3.complete();
 
-    expect(onResult.mock.calls).toEqual([[0], [1], [100], [99]]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    assertObserverCalls(
+      observer,
+      [[0], [1], [100], [99]],
+      [[customError]],
+      [[], []]
+    );
   });
 
-  test('stable setState() identity', async () => {
-    const runningHook = run(() => {
+  test('stable setState identity', async () => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       useEffect(() => {
@@ -691,12 +776,13 @@ describe('run()', () => {
       }, [setState]);
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0], [1]]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [[0], [1]], [], []);
   });
 
   test('different callback inputs', async () => {
@@ -704,7 +790,7 @@ describe('run()', () => {
     const effect2 = jest.fn();
     const effect3 = jest.fn();
 
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       useEffect(() => {
@@ -727,30 +813,34 @@ describe('run()', () => {
       useEffect(effect3, [callback3]);
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0], [1], [2]]);
+    await queueMicrotask();
+
     expect(effect1).toHaveBeenCalledTimes(1);
     expect(effect2).toHaveBeenCalledTimes(2);
     expect(effect3).toHaveBeenCalledTimes(3);
+
+    assertObserverCalls(observer, [[0], [1], [2]], [], []);
   });
 
   test('callback identity', async () => {
     const callback = jest.fn();
-    const runningHook = run(() => useCallback(callback, []), onResult);
+    const subject = new Subject(() => useCallback(callback, []));
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[callback]]);
+    await queueMicrotask();
+
     expect(callback).toHaveBeenCalledTimes(0);
+
+    assertObserverCalls(observer, [[callback]], [], []);
   });
 
   test('ref-object persistence', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
       useEffect(() => setState(1), []);
@@ -760,16 +850,17 @@ describe('run()', () => {
       refObject.current += 1;
 
       return refObject.current;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[1], [2]]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [[1], [2]], [], []);
   });
 
-  test('reducer with initial state', async () => {
-    const runningHook = run(() => {
+  test('reducer with static initial state', async () => {
+    const subject = new Subject(() => {
       const [state, dispatch] = useReducer(reducer, 22);
 
       useEffect(() => {
@@ -778,16 +869,17 @@ describe('run()', () => {
       }, []);
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[22], [30]]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [[22], [30]], [], []);
   });
 
   test('reducer with lazy initial state', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, dispatch] = useReducer(
         reducer,
         '44',
@@ -800,33 +892,35 @@ describe('run()', () => {
       }, []);
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[22], [30]]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [[22], [30]], [], []);
   });
 
   test('failing reducer function', async () => {
-    const runningHook = run(() => {
+    const subject = new Subject(() => {
       const [state, dispatch] = useReducer(() => {
-        throw error;
+        throw customError;
       }, 0);
 
       dispatch(1);
 
       return state;
-    }, onResult);
+    });
 
-    await runningHook.promise.catch(onError);
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0]]);
-    expect(onError.mock.calls).toEqual([[error]]);
+    await subject.completion;
+
+    assertObserverCalls(observer, [[0]], [[customError]], []);
   });
 
-  test('stable dispatch() identity', async () => {
-    const runningHook = run(() => {
+  test('stable dispatch identity', async () => {
+    const subject = new Subject(() => {
       const [state, dispatch] = useReducer(reducer, 0);
 
       useEffect(() => {
@@ -834,11 +928,28 @@ describe('run()', () => {
       }, [dispatch]);
 
       return state;
-    }, onResult);
+    });
 
-    await queueMacrotask(() => runningHook.stop());
-    await runningHook.promise;
+    subject.subscribe(observer);
 
-    expect(onResult.mock.calls).toEqual([[0], [1]]);
+    await queueMicrotask();
+
+    assertObserverCalls(observer, [[0], [1]], [], []);
+  });
+
+  test('illegal hook calls', () => {
+    const subject = new Subject(jest.fn());
+
+    expect(() => subject.useEffect(jest.fn())).toThrowError(
+      'Please use the separately exported useEffect() function.'
+    );
+
+    expect(() => subject.useState(0)).toThrowError(
+      'Please use the separately exported useState() function.'
+    );
+
+    expect(() => subject.useMemo(jest.fn(), [])).toThrowError(
+      'Please use the separately exported useMemo() function.'
+    );
   });
 });

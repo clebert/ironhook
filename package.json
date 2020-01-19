@@ -7,8 +7,14 @@
     "asynchronous",
     "hook",
     "hooks",
+    "observable",
+    "observer",
+    "publish",
+    "pubsub",
     "react",
-    "reactive"
+    "reactive",
+    "subject",
+    "subscribe"
   ],
   "bugs": {
     "url": "https://github.com/clebert/ironhook/issues"
@@ -48,7 +54,7 @@
   "size-limit": [
     {
       "path": "lib/index.js",
-      "limit": "1.5 KB"
+      "limit": "1.4 KB"
     }
   ]
 }

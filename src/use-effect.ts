@@ -1,5 +1,5 @@
-import {Effect, Runner} from './runner';
+import {Effect, Subject} from './subject';
 
 export function useEffect(effect: Effect, dependencies?: unknown[]): void {
-  Runner.getActive().useEffect(effect, dependencies);
+  Subject.getActive().useEffect(effect, dependencies);
 }
