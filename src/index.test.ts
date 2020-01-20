@@ -62,7 +62,7 @@ describe('Subject', () => {
       throw customError;
     });
 
-    const subject = new Subject<string>(mainHook);
+    const subject = new Subject(mainHook);
 
     const observer1 = createMockObserver();
     const observer2 = createMockObserver();
@@ -591,13 +591,17 @@ describe('Subject', () => {
   });
 
   test('failing observer.next', async () => {
-    observer.next.mockImplementation(() => {
+    const subject = new Subject(() => 0);
+
+    const observer1 = createMockObserver();
+    const observer2 = createMockObserver();
+
+    observer1.next.mockImplementation(() => {
       throw customError;
     });
 
-    const subject = new Subject(() => 0);
-
-    subject.subscribe(observer);
+    subject.subscribe(observer1);
+    subject.subscribe(observer2);
 
     await queueMicrotask();
 
@@ -605,44 +609,59 @@ describe('Subject', () => {
       ['Error while publishing value.', customError]
     ]);
 
-    assertObserverCalls(observer, [[0]], [], []);
+    assertObserverCalls(observer1, [[0]], [], []);
+    assertObserverCalls(observer2, [[0]], [], []);
   });
 
   test('failing observer.error', async () => {
-    observer.error.mockImplementation(() => {
-      throw customError;
-    });
+    const customError1 = new Error('Oops1!');
+    const customError2 = new Error('Oops2!');
 
     const subject = new Subject(() => {
-      throw customError;
+      throw customError1;
     });
 
-    subject.subscribe(observer);
+    const observer1 = createMockObserver();
+    const observer2 = createMockObserver();
+
+    observer1.error.mockImplementation(() => {
+      throw customError2;
+    });
+
+    subject.subscribe(observer1);
+    subject.subscribe(observer2);
 
     await subject.completion;
 
     expect(consoleError.mock.calls).toEqual([
-      ['Error while publishing error.', customError]
+      ['Error while publishing error.', customError2]
     ]);
 
-    assertObserverCalls(observer, [], [[customError]], []);
+    assertObserverCalls(observer1, [], [[customError1]], []);
+    assertObserverCalls(observer2, [], [[customError1]], []);
   });
 
   test('failing observer.complete', async () => {
-    observer.complete.mockImplementation(() => {
+    const subject = new Subject(jest.fn());
+
+    const observer1 = createMockObserver();
+    const observer2 = createMockObserver();
+
+    observer1.complete.mockImplementation(() => {
       throw customError;
     });
 
-    const subject = new Subject(jest.fn());
+    subject.subscribe(observer1);
+    subject.subscribe(observer2);
 
-    subject.subscribe(observer);
     subject.complete();
 
     expect(consoleError.mock.calls).toEqual([
       ['Error while completion.', customError]
     ]);
 
-    assertObserverCalls(observer, [], [], [[]]);
+    assertObserverCalls(observer1, [], [], [[]]);
+    assertObserverCalls(observer2, [], [], [[]]);
   });
 
   test('different hook inputs', async () => {
