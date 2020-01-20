@@ -144,6 +144,10 @@ state changes until an error is thrown or the `Subject.complete()` method is
 called. An error or completion has the same effect as unmounting a React
 function component.
 
+**Note:** If the return value of the `mainHook` is `null` or `undefined`,
+`Observer.next(value)` will not be called. This allows to control the publishing
+of new values to the observers. Not every new state has to be communicated.
+
 ### Types
 
 ```ts
@@ -167,7 +171,7 @@ type MainHook<TValue> = () => TValue;
 
 ```ts
 interface Observer<TValue> {
-  next(value: TValue): void;
+  next(value: NonNullable<TValue>): void;
   error(error: Error): void;
   complete(): void;
 }

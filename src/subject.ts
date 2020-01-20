@@ -1,7 +1,7 @@
-import {areHookInputsEqual, isFunction, isKindOf} from './utils';
+import {areHookInputsEqual, isFunction, isKindOf, isNonNullable} from './utils';
 
 export interface Observer<TValue> {
-  next(value: TValue): void;
+  next(value: NonNullable<TValue>): void;
   error(error: Error): void;
   complete(): void;
 }
@@ -55,9 +55,7 @@ export class Subject<TValue> {
 
   private readonly memory: MemoryCell[] = [];
 
-  private observers: Set<Observer<TValue>> | undefined = new Set<
-    Observer<TValue>
-  >();
+  private observers: Set<Observer<TValue>> | undefined = new Set();
 
   /**
    * This promise is resolved both in the case of an error
@@ -251,7 +249,9 @@ export class Subject<TValue> {
 
       for (const observer of this.observers) {
         try {
-          observer.next(value);
+          if (isNonNullable(value)) {
+            observer.next(value);
+          }
         } catch (error) {
           console.error('Error while publishing value.', error);
         }
