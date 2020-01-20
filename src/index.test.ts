@@ -487,7 +487,7 @@ describe('Subject', () => {
 
     await queueMicrotask();
 
-    assertObserverCalls(observer, [], [], []);
+    assertObserverCalls(observer, [[undefined]], [], []);
   });
 
   test('null value', async () => {
@@ -497,7 +497,7 @@ describe('Subject', () => {
 
     await queueMicrotask();
 
-    assertObserverCalls(observer, [], [], []);
+    assertObserverCalls(observer, [[null]], [], []);
   });
 
   test('lazy initial state', async () => {

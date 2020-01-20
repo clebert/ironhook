@@ -1,7 +1,7 @@
-import {areHookInputsEqual, isFunction, isKindOf, isNonNullable} from './utils';
+import {areHookInputsEqual, isFunction, isKindOf} from './utils';
 
 export interface Observer<TValue> {
-  next(value: NonNullable<TValue>): void;
+  next(value: TValue): void;
   error(error: Error): void;
   complete(): void;
 }
@@ -249,9 +249,7 @@ export class Subject<TValue> {
 
       for (const observer of this.observers) {
         try {
-          if (isNonNullable(value)) {
-            observer.next(value);
-          }
+          observer.next(value);
         } catch (error) {
           console.error('Error while publishing value.', error);
         }
