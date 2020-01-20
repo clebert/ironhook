@@ -1,4 +1,4 @@
-import {CreateInitialState, SetState, Subject} from './subject';
+import {CreateInitialState, SetState, Subject} from '../subject';
 
 export function useState<TState>(
   initialState: TState | CreateInitialState<TState>

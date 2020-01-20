@@ -1,6 +1,4 @@
-import {areHookInputsEqual} from './utils/are-hook-inputs-equal';
-import {isFunction} from './utils/is-function';
-import {isKindOf} from './utils/is-kind-of';
+import {areHookInputsEqual, isFunction, isKindOf} from './utils';
 
 export interface Observer<TValue> {
   next(value: TValue): void;
