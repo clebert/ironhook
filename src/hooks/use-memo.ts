@@ -1,4 +1,4 @@
-import {Subject} from './subject';
+import {Subject} from '../subject';
 
 export function useMemo<TValue>(
   createValue: () => TValue,
