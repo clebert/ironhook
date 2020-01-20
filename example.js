@@ -13,7 +13,5 @@ function useName() {
 const subject = new Subject(useName);
 
 subject.subscribe({
-  next: name => console.log(`Hello, ${name}!`),
-  error: error => console.error('Oops!', error),
-  complete: () => console.log('Bye.')
+  next: name => console.log(`Hello, ${name}!`)
 });

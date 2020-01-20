@@ -10,23 +10,25 @@ import {
 
 interface MockObserver {
   readonly next: jest.Mock;
-  readonly error: jest.Mock;
-  readonly complete: jest.Mock;
+  readonly error?: jest.Mock;
+  readonly complete?: jest.Mock;
 }
 
-function createMockObserver(): MockObserver {
-  return {next: jest.fn(), error: jest.fn(), complete: jest.fn()};
+function createMockObserver(partial = false): MockObserver {
+  return partial
+    ? {next: jest.fn()}
+    : {next: jest.fn(), error: jest.fn(), complete: jest.fn()};
 }
 
 function assertObserverCalls(
   observer: MockObserver,
   nextCalls: unknown[][],
-  errorCalls: unknown[][],
-  completeCalls: unknown[][]
+  errorCalls?: unknown[][],
+  completeCalls?: unknown[][]
 ): void {
   expect(observer.next.mock.calls).toEqual(nextCalls);
-  expect(observer.error.mock.calls).toEqual(errorCalls);
-  expect(observer.complete.mock.calls).toEqual(completeCalls);
+  expect(observer.error?.mock.calls).toEqual(errorCalls);
+  expect(observer.complete?.mock.calls).toEqual(completeCalls);
 }
 
 function queueMicrotask(): Promise<void> {
@@ -631,7 +633,7 @@ describe('Subject', () => {
     const observer1 = createMockObserver();
     const observer2 = createMockObserver();
 
-    observer1.error.mockImplementation(() => {
+    observer1.error?.mockImplementation(() => {
       throw customError2;
     });
 
@@ -654,7 +656,7 @@ describe('Subject', () => {
     const observer1 = createMockObserver();
     const observer2 = createMockObserver();
 
-    observer1.complete.mockImplementation(() => {
+    observer1.complete?.mockImplementation(() => {
       throw customError;
     });
 
@@ -995,7 +997,7 @@ describe('Subject', () => {
 
     let numberOfCalls = 0;
 
-    observer.error.mockImplementation(() => {
+    observer.error?.mockImplementation(() => {
       numberOfCalls = cleanUpEffect.mock.calls.length;
     });
 
@@ -1020,7 +1022,7 @@ describe('Subject', () => {
 
     let numberOfCalls = 0;
 
-    observer.complete.mockImplementation(() => {
+    observer.complete?.mockImplementation(() => {
       numberOfCalls = cleanUpEffect.mock.calls.length;
     });
 
@@ -1033,5 +1035,34 @@ describe('Subject', () => {
     expect(numberOfCalls).toBe(1);
 
     assertObserverCalls(observer, [[undefined]], [], [[]]);
+  });
+
+  test('partial observer without observer.error', async () => {
+    const mainHook = jest.fn(() => {
+      throw customError;
+    });
+
+    const subject = new Subject(mainHook);
+    const observer = createMockObserver(true);
+
+    subject.subscribe(observer);
+
+    await queueMicrotask();
+
+    assertObserverCalls(observer, []);
+  });
+
+  test('partial observer without observer.complete', async () => {
+    const mainHook = jest.fn(() => 0);
+    const subject = new Subject(mainHook);
+    const observer = createMockObserver(true);
+
+    subject.subscribe(observer);
+
+    await queueMicrotask();
+
+    subject.complete();
+
+    assertObserverCalls(observer, [[0]]);
   });
 });

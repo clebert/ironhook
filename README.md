@@ -76,9 +76,7 @@ function useName() {
 const subject = new Subject(useName);
 
 subject.subscribe({
-  next: name => console.log(`Hello, ${name}!`),
-  error: error => console.error('Oops!', error),
-  complete: () => console.log('Bye.')
+  next: name => console.log(`Hello, ${name}!`)
 });
 ```
 
@@ -162,8 +160,8 @@ type MainHook<TValue> = () => TValue;
 ```ts
 interface Observer<TValue> {
   next(value: TValue): void;
-  error(error: Error): void;
-  complete(): void;
+  error?(error: Error): void;
+  complete?(): void;
 }
 ```
 
@@ -172,8 +170,9 @@ type Unsubscribe = () => void;
 ```
 
 **Note:** The `Observer` interface is intentionally compatible with the
-[`Observer`](https://rxjs.dev/api/index/interface/Observer) from RxJS and the
-[`Listener`](http://staltz.github.io/xstream/#listener) from xstream.
+[`Observer`](https://github.com/ReactiveX/rxjs/blob/master/doc/observer.md) from
+RxJS and the [`Listener`](http://staltz.github.io/xstream/#listener) from
+xstream.
 
 ## Development
 

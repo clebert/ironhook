@@ -2,8 +2,8 @@ import {areHookInputsEqual, isFunction, isKindOf} from './utils';
 
 export interface Observer<TValue> {
   next(value: TValue): void;
-  error(error: Error): void;
-  complete(): void;
+  error?(error: Error): void;
+  complete?(): void;
 }
 
 export type Unsubscribe = () => void;
@@ -82,7 +82,9 @@ export class Subject<TValue> {
 
     for (const observer of observers) {
       try {
-        observer.complete();
+        if (observer.complete) {
+          observer.complete();
+        }
       } catch (error) {
         console.error('Error while completing.', error);
       }
@@ -206,7 +208,9 @@ export class Subject<TValue> {
 
         for (const observer of observers) {
           try {
-            observer.error(error);
+            if (observer.error) {
+              observer.error(error);
+            }
           } catch (error) {
             console.error('Error while publishing error.', error);
           }
