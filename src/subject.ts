@@ -56,22 +56,10 @@ export class Subject<TValue> {
   private readonly memory: MemoryCell[] = [];
 
   private observers: Set<Observer<TValue>> | undefined = new Set();
-
-  /**
-   * This promise is resolved both in the case of an error
-   * and after normal completion.
-   */
-  public readonly completion: Promise<void>;
-
-  private resolveCompletion!: () => void;
   private memoryAllocated = false;
   private memoryPointer = 0;
 
-  public constructor(private readonly mainHook: MainHook<TValue>) {
-    this.completion = new Promise<void>(
-      resolve => (this.resolveCompletion = resolve)
-    );
-  }
+  public constructor(private readonly mainHook: MainHook<TValue>) {}
 
   public subscribe(observer: Observer<TValue>): Unsubscribe {
     this.observers?.add(observer);
@@ -88,18 +76,17 @@ export class Subject<TValue> {
       return;
     }
 
+    this.observers = undefined;
+
+    this.cleanUpEffects(true);
+
     for (const observer of observers) {
       try {
         observer.complete();
       } catch (error) {
-        console.error('Error while completion.', error);
+        console.error('Error while completing.', error);
       }
     }
-
-    this.observers = undefined;
-
-    this.cleanUpEffects(true);
-    this.resolveCompletion();
   }
 
   public useEffect(effect: Effect, dependencies?: unknown[]): void {
@@ -213,6 +200,10 @@ export class Subject<TValue> {
           return;
         }
 
+        this.observers = undefined;
+
+        this.cleanUpEffects(true);
+
         for (const observer of observers) {
           try {
             observer.error(error);
@@ -220,11 +211,6 @@ export class Subject<TValue> {
             console.error('Error while publishing error.', error);
           }
         }
-
-        this.observers = undefined;
-
-        this.cleanUpEffects(true);
-        this.resolveCompletion();
       }
     });
   }

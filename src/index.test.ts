@@ -84,7 +84,6 @@ describe('Subject', () => {
     subject.subscribe(observer4);
 
     await queueMicrotask();
-    await subject.completion;
 
     expect(mainHook).toBeCalledTimes(1);
 
@@ -152,7 +151,6 @@ describe('Subject', () => {
     subject.subscribe(observer5);
 
     await queueMicrotask();
-    await subject.completion;
 
     expect(mainHook).toBeCalledTimes(2);
     expect(cleanUpEffect).toBeCalledTimes(2);
@@ -175,7 +173,6 @@ describe('Subject', () => {
     subject.complete();
 
     await queueMicrotask();
-    await subject.completion;
 
     expect(mainHook).toBeCalledTimes(0);
 
@@ -243,7 +240,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     expect(log.mock.calls).toEqual([
       ['mainHook', 0],
@@ -284,7 +281,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'The number of hook calls must not change.'
@@ -308,7 +305,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'The number of hook calls must not change.'
@@ -333,7 +330,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error('The order of hook calls must not change.');
 
@@ -351,7 +348,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'Hooks can only be called inside the body of the main hook.'
@@ -371,7 +368,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'Hooks can only be called inside the body of the main hook.'
@@ -396,7 +393,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'The existence of hook dependencies must not change.'
@@ -421,7 +418,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'The existence of hook dependencies must not change.'
@@ -446,7 +443,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'The order and number of hook dependencies must not change.'
@@ -471,7 +468,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     const expectedError = new Error(
       'The order and number of hook dependencies must not change.'
@@ -533,7 +530,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     assertObserverCalls(observer, [], [[customError]], []);
   });
@@ -551,7 +548,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     assertObserverCalls(observer, [[0]], [[customError]], []);
   });
@@ -567,7 +564,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     assertObserverCalls(observer, [[0]], [[customError]], []);
   });
@@ -641,7 +638,7 @@ describe('Subject', () => {
     subject.subscribe(observer1);
     subject.subscribe(observer2);
 
-    await subject.completion;
+    await queueMicrotask();
 
     expect(consoleError.mock.calls).toEqual([
       ['Error while publishing error.', customError2]
@@ -667,7 +664,7 @@ describe('Subject', () => {
     subject.complete();
 
     expect(consoleError.mock.calls).toEqual([
-      ['Error while completion.', customError]
+      ['Error while completing.', customError]
     ]);
 
     assertObserverCalls(observer1, [], [], [[]]);
@@ -783,7 +780,7 @@ describe('Subject', () => {
     subject2.subscribe(observer);
     subject3.subscribe(observer);
 
-    await subject2.completion;
+    await queueMicrotask();
 
     subject1.complete();
     subject3.complete();
@@ -943,7 +940,7 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await subject.completion;
+    await queueMicrotask();
 
     assertObserverCalls(observer, [[0]], [[customError]], []);
   });
@@ -980,5 +977,61 @@ describe('Subject', () => {
     expect(() => subject.useMemo(jest.fn(), [])).toThrowError(
       'Please use the separately exported useMemo() function.'
     );
+  });
+
+  test('clean up effects before calling observer.error', async () => {
+    const cleanUpEffect = jest.fn();
+
+    const mainHook = jest.fn(() => {
+      useEffect(() => cleanUpEffect);
+
+      useEffect(() => {
+        throw customError;
+      });
+    });
+
+    const subject = new Subject(mainHook);
+    const observer = createMockObserver();
+
+    let numberOfCalls = 0;
+
+    observer.error.mockImplementation(() => {
+      numberOfCalls = cleanUpEffect.mock.calls.length;
+    });
+
+    subject.subscribe(observer);
+
+    await queueMicrotask();
+
+    expect(numberOfCalls).toBe(1);
+
+    assertObserverCalls(observer, [[undefined]], [[customError]], []);
+  });
+
+  test('clean up effects before calling observer.complete', async () => {
+    const cleanUpEffect = jest.fn();
+
+    const mainHook = jest.fn(() => {
+      useEffect(() => cleanUpEffect);
+    });
+
+    const subject = new Subject(mainHook);
+    const observer = createMockObserver();
+
+    let numberOfCalls = 0;
+
+    observer.complete.mockImplementation(() => {
+      numberOfCalls = cleanUpEffect.mock.calls.length;
+    });
+
+    subject.subscribe(observer);
+
+    await queueMicrotask();
+
+    subject.complete();
+
+    expect(numberOfCalls).toBe(1);
+
+    assertObserverCalls(observer, [[undefined]], [], [[]]);
   });
 });
