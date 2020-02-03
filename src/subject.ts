@@ -84,6 +84,7 @@ export class Subject<TValue> {
       try {
         observer.complete();
       } catch (error) {
+        // @ts-ignore
         console.error('Error while completing.', error);
       }
     }
@@ -208,6 +209,7 @@ export class Subject<TValue> {
           try {
             observer.error(error);
           } catch (error) {
+            // @ts-ignore
             console.error('Error while publishing error.', error);
           }
         }
@@ -237,6 +239,7 @@ export class Subject<TValue> {
         try {
           observer.next(value);
         } catch (error) {
+          // @ts-ignore
           console.error('Error while publishing value.', error);
         }
       }
@@ -252,6 +255,7 @@ export class Subject<TValue> {
           try {
             memoryCell.cleanUpEffect();
           } catch (error) {
+            // @ts-ignore
             console.error('Error while cleaning up effect.', error);
           }
 
