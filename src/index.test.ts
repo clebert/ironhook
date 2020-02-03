@@ -8,18 +8,18 @@ import {
   useState
 } from '.';
 
-interface MockObserver {
+interface ObserverMock {
   readonly next: jest.Mock;
   readonly error: jest.Mock;
   readonly complete: jest.Mock;
 }
 
-function createMockObserver(): MockObserver {
+function createObserver(): ObserverMock {
   return {next: jest.fn(), error: jest.fn(), complete: jest.fn()};
 }
 
 function assertObserverCalls(
-  observer: MockObserver,
+  observer: ObserverMock,
   nextCalls: unknown[][],
   errorCalls: unknown[][],
   completeCalls: unknown[][]
@@ -38,7 +38,7 @@ describe('Subject', () => {
   const customError = new Error('Oops!');
 
   let consoleError: jest.SpyInstance;
-  let observer: MockObserver;
+  let observer: ObserverMock;
 
   beforeAll(() => {
     jest.setTimeout(50);
@@ -50,7 +50,7 @@ describe('Subject', () => {
 
   beforeEach(() => {
     consoleError = jest.spyOn(console, 'error');
-    observer = createMockObserver();
+    observer = createObserver();
   });
 
   afterEach(() => {
@@ -64,10 +64,10 @@ describe('Subject', () => {
 
     const subject = new Subject(mainHook);
 
-    const observer1 = createMockObserver();
-    const observer2 = createMockObserver();
-    const observer3 = createMockObserver();
-    const observer4 = createMockObserver();
+    const observer1 = createObserver();
+    const observer2 = createObserver();
+    const observer3 = createObserver();
+    const observer4 = createObserver();
 
     await queueMicrotask();
 
@@ -115,11 +115,11 @@ describe('Subject', () => {
 
     const subject = new Subject(mainHook);
 
-    const observer1 = createMockObserver();
-    const observer2 = createMockObserver();
-    const observer3 = createMockObserver();
-    const observer4 = createMockObserver();
-    const observer5 = createMockObserver();
+    const observer1 = createObserver();
+    const observer2 = createObserver();
+    const observer3 = createObserver();
+    const observer4 = createObserver();
+    const observer5 = createObserver();
 
     await queueMicrotask();
 
@@ -165,7 +165,7 @@ describe('Subject', () => {
   test('synchronous completion', async () => {
     const mainHook = jest.fn();
     const subject = new Subject(mainHook);
-    const observer = createMockObserver();
+    const observer = createObserver();
 
     subject.subscribe(observer);
 
@@ -600,8 +600,8 @@ describe('Subject', () => {
   test('failing observer.next', async () => {
     const subject = new Subject(() => 0);
 
-    const observer1 = createMockObserver();
-    const observer2 = createMockObserver();
+    const observer1 = createObserver();
+    const observer2 = createObserver();
 
     observer1.next.mockImplementation(() => {
       throw customError;
@@ -628,8 +628,8 @@ describe('Subject', () => {
       throw customError1;
     });
 
-    const observer1 = createMockObserver();
-    const observer2 = createMockObserver();
+    const observer1 = createObserver();
+    const observer2 = createObserver();
 
     observer1.error.mockImplementation(() => {
       throw customError2;
@@ -651,8 +651,8 @@ describe('Subject', () => {
   test('failing observer.complete', async () => {
     const subject = new Subject(jest.fn());
 
-    const observer1 = createMockObserver();
-    const observer2 = createMockObserver();
+    const observer1 = createObserver();
+    const observer2 = createObserver();
 
     observer1.complete.mockImplementation(() => {
       throw customError;
@@ -991,7 +991,7 @@ describe('Subject', () => {
     });
 
     const subject = new Subject(mainHook);
-    const observer = createMockObserver();
+    const observer = createObserver();
 
     let numberOfCalls = 0;
 
@@ -1016,7 +1016,7 @@ describe('Subject', () => {
     });
 
     const subject = new Subject(mainHook);
-    const observer = createMockObserver();
+    const observer = createObserver();
 
     let numberOfCalls = 0;
 
