@@ -49,6 +49,7 @@ describe('Subject', () => {
   });
 
   beforeEach(() => {
+    // @ts-ignore
     consoleError = jest.spyOn(console, 'error');
     observer = createObserver();
   });
