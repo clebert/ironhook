@@ -1,4 +1,4 @@
-const {Subject, useEffect, useState} = require('./lib');
+const {Subject, useEffect, useState} = require('./lib/cjs');
 
 function useName() {
   const [name, setName] = useState('World');

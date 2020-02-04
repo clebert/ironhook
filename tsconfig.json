@@ -9,12 +9,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strict": true,
-    "target": "ES2017",
+    "target": "ES2018",
     "jsx": "react",
     "allowSyntheticDefaultImports": true,
     "pretty": true,
-    "declaration": true,
-    "outDir": "lib"
+    "declaration": true
   },
   "include": ["src/**/*"]
 }
