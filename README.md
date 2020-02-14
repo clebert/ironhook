@@ -61,21 +61,21 @@ The following is a constructed example that demonstrates the use of this
 library:
 
 ```js
-import {Subject, useEffect, useState} from 'ironhook';
+import * as Ironhook from 'ironhook';
 
 function useName() {
-  const [name, setName] = useState('World');
+  const [name, setName] = Ironhook.useState('World');
 
-  useEffect(() => {
+  Ironhook.useEffect(() => {
     setTimeout(() => setName('John Doe'), 10);
   }, []);
 
   return name;
 }
 
-const subject = new Subject(useName);
+const nameSubject = new Ironhook.Subject(useName);
 
-subject.subscribe({
+nameSubject.subscribe({
   next: name => console.log(`Hello, ${name}!`),
   error: error => console.error('Oops!', error),
   complete: () => console.log('Bye.')
@@ -99,18 +99,18 @@ also applies to this library and should be consulted.
 Below you can see the implementation status of the various Hooks provided by
 React:
 
-| Hook                                         |                                        | Status        |
-| -------------------------------------------- | -------------------------------------- | ------------- |
-| [`useState`][usestate]                       | `import {useState} from 'ironhook'`    | ✅Implemented |
-| [`useEffect`][useeffect]                     | `import {useEffect} from 'ironhook'`   | ✅Implemented |
-| [`useReducer`][usereducer]                   | `import {useReducer} from 'ironhook'`  | ✅Implemented |
-| [`useCallback`][usecallback]                 | `import {useCallback} from 'ironhook'` | ✅Implemented |
-| [`useMemo`][usememo]                         | `import {useMemo} from 'ironhook'`     | ✅Implemented |
-| [`useRef`][useref]                           | `import {useRef} from 'ironhook'`      | ✅Implemented |
-| [`useContext`][usecontext]                   |                                        | ❌Not planned |
-| [`useImperativeHandle`][useimperativehandle] |                                        | ❌Not planned |
-| [`useLayoutEffect`][uselayouteffect]         |                                        | ❌Not planned |
-| [`useDebugValue`][usedebugvalue]             |                                        | ❌Not planned |
+| Hook                                         | Status        |
+| -------------------------------------------- | ------------- |
+| [`useState`][usestate]                       | ✅Implemented |
+| [`useEffect`][useeffect]                     | ✅Implemented |
+| [`useReducer`][usereducer]                   | ✅Implemented |
+| [`useCallback`][usecallback]                 | ✅Implemented |
+| [`useMemo`][usememo]                         | ✅Implemented |
+| [`useRef`][useref]                           | ✅Implemented |
+| [`useContext`][usecontext]                   | ❌Not planned |
+| [`useImperativeHandle`][useimperativehandle] | ❌Not planned |
+| [`useLayoutEffect`][uselayouteffect]         | ❌Not planned |
+| [`useDebugValue`][usedebugvalue]             | ❌Not planned |
 
 [usestate]: https://reactjs.org/docs/hooks-reference.html#usestate
 [useeffect]: https://reactjs.org/docs/hooks-reference.html#useeffect

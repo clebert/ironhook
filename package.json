@@ -33,8 +33,7 @@
   "module": "lib/esm/index.js",
   "types": "lib/cjs/index.d.ts",
   "scripts": {
-    "precompile": "rm -rf lib",
-    "compile": "tsc --project tsconfig.cjs.json && tsc --project tsconfig.esm.json",
+    "compile": "tsc --build tsconfig.cjs.json tsconfig.esm.json",
     "format": "prettier --write '**/*.{html,js,json,md,ts,tsx,yml}'",
     "release": "npm version",
     "postrelease": "git push --follow-tags",

@@ -11,7 +11,6 @@
     "strict": true,
     "target": "ES2018",
     "jsx": "react",
-    "allowSyntheticDefaultImports": true,
     "pretty": true,
     "declaration": true
   },
