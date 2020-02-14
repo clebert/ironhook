@@ -1,18 +1,21 @@
-const {Subject, useEffect, useState} = require('./lib/cjs');
+// @ts-check
+
+// import * as Ironhook from 'ironhook';
+const Ironhook = require('./lib/cjs');
 
 function useName() {
-  const [name, setName] = useState('World');
+  const [name, setName] = Ironhook.useState('World');
 
-  useEffect(() => {
+  Ironhook.useEffect(() => {
     setTimeout(() => setName('John Doe'), 10);
   }, []);
 
   return name;
 }
 
-const subject = new Subject(useName);
+const nameSubject = new Ironhook.Subject(useName);
 
-subject.subscribe({
+nameSubject.subscribe({
   next: name => console.log(`Hello, ${name}!`),
   error: error => console.error('Oops!', error),
   complete: () => console.log('Bye.')
