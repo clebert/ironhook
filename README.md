@@ -89,6 +89,11 @@ Hello, World!
 Hello, John Doe!
 ```
 
+**Note:** [ironhook-react][ironhook-react] allows easy use of Hooks written with
+Ironhook in React.
+
+[ironhook-react]: https://github.com/clebert/ironhook-react
+
 ## API Reference
 
 The [React Hooks API reference](https://reactjs.org/docs/hooks-reference.html)
