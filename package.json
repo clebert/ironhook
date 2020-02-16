@@ -35,6 +35,7 @@
   "scripts": {
     "compile": "tsc --build tsconfig.cjs.json tsconfig.esm.json",
     "format": "prettier --write '**/*.{html,js,json,md,ts,tsx,yml}'",
+    "format:test": "prettier --list-different '**/*.{html,js,json,md,ts,tsx,yml}'",
     "release": "npm version",
     "postrelease": "git push --follow-tags",
     "test": "jest"

@@ -21,7 +21,7 @@ jobs:
         env:
           CI: true
         run: |
-          yarn prettier --list-different '**/*.{js,json,md,ts,tsx,yml}'
+          yarn format:test
           yarn compile
           yarn size-limit
           yarn test
