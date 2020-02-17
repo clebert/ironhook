@@ -1,4 +1,4 @@
-# ironhook
+# Ironhook
 
 [![][ci-badge]][ci-link] [![][version-badge]][version-link]
 [![][license-badge]][license-link] [![][types-badge]][types-link]
@@ -52,6 +52,13 @@ to use this kind of reactive programming in other areas as well, for example for
 programming web workers, AWS Lambda handlers, or even JavaScript-controlled
 robots. Therefore I wrote this library.
 
+**Additional note:** Meanwhile I also use Hooks written with Ironhook in the
+context of React applications for observable global singletons (Ironhook
+subjects) which I want to consume reactively in multiple components. I created
+[ironhook-react][ironhook-react] for this, it allows easy use of Hooks written
+with Ironhook in React.
+
+[ironhook-react]: https://github.com/clebert/ironhook-react
 [rxjs]: https://github.com/ReactiveX/rxjs
 [xstream]: https://github.com/staltz/xstream
 
@@ -88,11 +95,6 @@ Output:
 Hello, World!
 Hello, John Doe!
 ```
-
-**Note:** [ironhook-react][ironhook-react] allows easy use of Hooks written with
-Ironhook in React.
-
-[ironhook-react]: https://github.com/clebert/ironhook-react
 
 ## API Reference
 
@@ -139,15 +141,20 @@ This library implements the
 > notifies them automatically of any state changes, usually by calling one of
 > their methods.
 
-The main difference to React is that this library calls a Hook (aka `mainHook`)
-directly, without the need for a surrounding function component. The first
-execution of the `mainHook` is scheduled as a microtask (i.e. asynchronous)
-after the first call of `Subject.subscribe(observer)`. All further executions
-can be scheduled internally with the `useState` or `useReducer` Hooks. The
-`mainHook` continues to run, i.e. it maintains its state and is re-executed on
-state changes until an error is thrown or the `Subject.complete()` method is
-called. An error or completion has the same effect as unmounting a React
-function component.
+Unlike React, Hooks are executed with Ironhook as an observable subject. This
+means the results of a single Hook (aka `mainHook`) can be consumed by multiple
+parties.
+
+The `mainHook` is first executed by the first call to
+`Subject.subscribe(observer)`. The `observer` is then notified synchronously
+with the first result. All subsequent observers are also notified synchronously
+with the latest available result.
+
+All further executions can be scheduled internally with the `useState` or
+`useReducer` Hooks. The `mainHook` continues to run, i.e. it maintains its state
+and is re-executed on state changes until an error is thrown or the
+`Subject.complete()` method is called. An error or completion has the same
+effect as unmounting a React function component.
 
 ### Types
 

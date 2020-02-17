@@ -58,7 +58,7 @@ describe('Subject', () => {
     consoleError.mockRestore();
   });
 
-  test('asynchronous initial error', async () => {
+  test('initial error', () => {
     const mainHook = jest.fn(() => {
       throw customError;
     });
@@ -67,31 +67,14 @@ describe('Subject', () => {
 
     const observer1 = createObserver();
     const observer2 = createObserver();
-    const observer3 = createObserver();
-    const observer4 = createObserver();
-
-    await queueMicrotask();
-
-    expect(mainHook).toBeCalledTimes(0);
 
     subject.subscribe(observer1);
     subject.subscribe(observer2)();
-    subject.subscribe(observer3);
-
-    await queueMicrotask();
-
-    expect(mainHook).toBeCalledTimes(1);
-
-    subject.subscribe(observer4);
-
-    await queueMicrotask();
 
     expect(mainHook).toBeCalledTimes(1);
 
     assertObserverCalls(observer1, [], [[customError]], []);
-    assertObserverCalls(observer2, [], [], []);
-    assertObserverCalls(observer3, [], [[customError]], []);
-    assertObserverCalls(observer4, [], [], []);
+    assertObserverCalls(observer2, [], [[customError]], []);
   });
 
   test('asynchronous completion', async () => {
@@ -119,68 +102,49 @@ describe('Subject', () => {
     const observer1 = createObserver();
     const observer2 = createObserver();
     const observer3 = createObserver();
-    const observer4 = createObserver();
-    const observer5 = createObserver();
-
-    await queueMicrotask();
-
-    expect(mainHook).toBeCalledTimes(0);
 
     subject.subscribe(observer1);
-
-    const unsubscribe2 = subject.subscribe(observer2);
-
-    unsubscribe2();
-
-    const unsubscribe3 = subject.subscribe(observer3);
+    subject.subscribe(observer2)();
 
     await queueMicrotask();
-
-    expect(mainHook).toBeCalledTimes(1);
-
-    subject.subscribe(observer4);
-
     await queueMicrotask();
-
-    unsubscribe3();
 
     subject.complete();
     subject.complete();
 
-    expect(mainHook).toBeCalledTimes(2);
+    subject.subscribe(observer3);
 
-    subject.subscribe(observer5);
-
+    await queueMicrotask();
     await queueMicrotask();
 
     expect(mainHook).toBeCalledTimes(2);
     expect(cleanUpEffect).toBeCalledTimes(2);
 
     assertObserverCalls(observer1, [[0], [2]], [], [[]]);
-    assertObserverCalls(observer2, [], [], []);
-    assertObserverCalls(observer3, [[0], [2]], [], []);
-    assertObserverCalls(observer4, [[2]], [], [[]]);
-    assertObserverCalls(observer5, [], [], []);
+    assertObserverCalls(observer2, [[0]], [], []);
+    assertObserverCalls(observer3, [], [], [[]]);
   });
 
-  test('synchronous completion', async () => {
-    const mainHook = jest.fn();
+  test('synchronous completion', () => {
+    const mainHook = jest.fn(() => 0);
     const subject = new Subject(mainHook);
-    const observer = createObserver();
 
-    subject.subscribe(observer);
+    const observer1 = createObserver();
+    const observer2 = createObserver();
+
+    subject.subscribe(observer1);
+    subject.subscribe(observer2)();
 
     subject.complete();
     subject.complete();
 
-    await queueMicrotask();
+    expect(mainHook).toBeCalledTimes(1);
 
-    expect(mainHook).toBeCalledTimes(0);
-
-    assertObserverCalls(observer, [], [], [[]]);
+    assertObserverCalls(observer1, [[0]], [], [[]]);
+    assertObserverCalls(observer2, [[0]], [], []);
   });
 
-  test('sequence of setState, effect, and cleanUpEffect', async () => {
+  test('sequence of setState, effect, and cleanUpEffect', () => {
     const log = jest.fn();
 
     const subject = new Subject(() => {
@@ -241,8 +205,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     expect(log.mock.calls).toEqual([
       ['mainHook', 0],
       ['setState', 1],
@@ -268,7 +230,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0], [1], [2], [4]], [[customError]], []);
   });
 
-  test('error if the number of hook calls is changed (1)', async () => {
+  test('error if the number of hook calls is changed (1)', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -282,8 +244,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'The number of hook calls must not change.'
     );
@@ -291,7 +251,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if the number of hook calls is changed (2)', async () => {
+  test('error if the number of hook calls is changed (2)', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -306,8 +266,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'The number of hook calls must not change.'
     );
@@ -315,7 +273,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if the order of hook calls is changed', async () => {
+  test('error if the order of hook calls is changed', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -330,15 +288,13 @@ describe('Subject', () => {
     });
 
     subject.subscribe(observer);
-
-    await queueMicrotask();
 
     const expectedError = new Error('The order of hook calls must not change.');
 
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if an effect hook is called outside the body of the main hook', async () => {
+  test('error if an effect hook is called outside the body of the main hook', () => {
     const subject = new Subject(() => {
       useEffect(() => {
         useEffect(jest.fn());
@@ -349,8 +305,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'Hooks can only be called inside the body of the main hook.'
     );
@@ -358,7 +312,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if a state hook is called outside the body of the main hook', async () => {
+  test('error if a state hook is called outside the body of the main hook', () => {
     const subject = new Subject(() => {
       useEffect(() => {
         useState(NaN);
@@ -369,8 +323,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'Hooks can only be called inside the body of the main hook.'
     );
@@ -378,7 +330,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if the existence of hook dependencies is changed (1)', async () => {
+  test('error if the existence of hook dependencies is changed (1)', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -394,8 +346,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'The existence of hook dependencies must not change.'
     );
@@ -403,7 +353,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if the existence of hook dependencies is changed (2)', async () => {
+  test('error if the existence of hook dependencies is changed (2)', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -419,8 +369,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'The existence of hook dependencies must not change.'
     );
@@ -428,7 +376,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if the number of hook dependencies is changed (1)', async () => {
+  test('error if the number of hook dependencies is changed (1)', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -444,8 +392,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'The order and number of hook dependencies must not change.'
     );
@@ -453,7 +399,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('error if the number of hook dependencies is changed (2)', async () => {
+  test('error if the number of hook dependencies is changed (2)', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -469,8 +415,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     const expectedError = new Error(
       'The order and number of hook dependencies must not change.'
     );
@@ -478,27 +422,23 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [[expectedError]], []);
   });
 
-  test('undefined value', async () => {
+  test('undefined value', () => {
     const subject = new Subject(() => undefined);
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[undefined]], [], []);
   });
 
-  test('null value', async () => {
+  test('null value', () => {
     const subject = new Subject(() => null);
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[null]], [], []);
   });
 
-  test('lazy initial state', async () => {
+  test('lazy initial state', () => {
     const createInitialState = jest.fn(() => 0);
 
     const subject = new Subject(() => {
@@ -513,14 +453,12 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     expect(createInitialState).toHaveBeenCalledTimes(1);
 
     assertObserverCalls(observer, [[0], [1]], [], []);
   });
 
-  test('failing createInitialState', async () => {
+  test('failing createInitialState', () => {
     const subject = new Subject(() => {
       useState(() => {
         throw customError;
@@ -531,12 +469,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [], [[customError]], []);
   });
 
-  test('failing createState', async () => {
+  test('failing createState', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -549,12 +485,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[0]], [[customError]], []);
   });
 
-  test('failing effect', async () => {
+  test('failing effect', () => {
     const subject = new Subject(() => {
       useEffect(() => {
         throw customError;
@@ -565,12 +499,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[0]], [[customError]], []);
   });
 
-  test('failing cleanUpEffect', async () => {
+  test('failing cleanUpEffect', () => {
     const cleanUpEffect = jest.fn();
 
     const subject = new Subject(() => {
@@ -585,8 +517,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     subject.complete();
 
     expect(cleanUpEffect).toHaveBeenCalledTimes(1);
@@ -598,7 +528,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0]], [], [[]]);
   });
 
-  test('failing observer.next', async () => {
+  test('failing observer.next', () => {
     const subject = new Subject(() => 0);
 
     const observer1 = createObserver();
@@ -611,8 +541,6 @@ describe('Subject', () => {
     subject.subscribe(observer1);
     subject.subscribe(observer2);
 
-    await queueMicrotask();
-
     expect(consoleError.mock.calls).toEqual([
       ['Error while publishing value.', customError]
     ]);
@@ -621,7 +549,7 @@ describe('Subject', () => {
     assertObserverCalls(observer2, [[0]], [], []);
   });
 
-  test('failing observer.error', async () => {
+  test('failing observer.error', () => {
     const customError1 = new Error('Oops1!');
     const customError2 = new Error('Oops2!');
 
@@ -639,8 +567,6 @@ describe('Subject', () => {
     subject.subscribe(observer1);
     subject.subscribe(observer2);
 
-    await queueMicrotask();
-
     expect(consoleError.mock.calls).toEqual([
       ['Error while publishing error.', customError2]
     ]);
@@ -649,8 +575,8 @@ describe('Subject', () => {
     assertObserverCalls(observer2, [], [[customError1]], []);
   });
 
-  test('failing observer.complete', async () => {
-    const subject = new Subject(jest.fn());
+  test('failing observer.complete', () => {
+    const subject = new Subject(() => 0);
 
     const observer1 = createObserver();
     const observer2 = createObserver();
@@ -668,11 +594,11 @@ describe('Subject', () => {
       ['Error while completing.', customError]
     ]);
 
-    assertObserverCalls(observer1, [], [], [[]]);
-    assertObserverCalls(observer2, [], [], [[]]);
+    assertObserverCalls(observer1, [[0]], [], [[]]);
+    assertObserverCalls(observer2, [[0]], [], [[]]);
   });
 
-  test('different hook inputs', async () => {
+  test('different hook inputs', () => {
     const effect1 = jest.fn();
     const effect2 = jest.fn();
     const effect3 = jest.fn();
@@ -695,8 +621,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     expect(effect1).toHaveBeenCalledTimes(1);
     expect(effect2).toHaveBeenCalledTimes(2);
     expect(effect3).toHaveBeenCalledTimes(3);
@@ -704,7 +628,7 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0], [1], [2]], [], []);
   });
 
-  test('no state change', async () => {
+  test('no state change', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -720,12 +644,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[0]], [], []);
   });
 
-  test('state changes', async () => {
+  test('state changes', () => {
     const subject = new Subject(() => {
       const [state1, setState1] = useState('a');
       const [state2, setState2] = useState('x');
@@ -747,12 +669,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [['ax'], ['bx'], ['by'], ['cy']], [], []);
   });
 
-  test('parallel subjects', async () => {
+  test('multiple subjects', () => {
     const subject1 = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -781,8 +701,6 @@ describe('Subject', () => {
     subject2.subscribe(observer);
     subject3.subscribe(observer);
 
-    await queueMicrotask();
-
     subject1.complete();
     subject3.complete();
 
@@ -794,7 +712,7 @@ describe('Subject', () => {
     );
   });
 
-  test('stable setState identity', async () => {
+  test('stable setState identity', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -807,12 +725,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[0], [1]], [], []);
   });
 
-  test('different callback inputs', async () => {
+  test('different callback inputs', () => {
     const effect1 = jest.fn();
     const effect2 = jest.fn();
     const effect3 = jest.fn();
@@ -844,8 +760,6 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     expect(effect1).toHaveBeenCalledTimes(1);
     expect(effect2).toHaveBeenCalledTimes(2);
     expect(effect3).toHaveBeenCalledTimes(3);
@@ -853,20 +767,18 @@ describe('Subject', () => {
     assertObserverCalls(observer, [[0], [1], [2]], [], []);
   });
 
-  test('callback identity', async () => {
+  test('callback identity', () => {
     const callback = jest.fn();
     const subject = new Subject(() => useCallback(callback, []));
 
     subject.subscribe(observer);
-
-    await queueMicrotask();
 
     expect(callback).toHaveBeenCalledTimes(0);
 
     assertObserverCalls(observer, [[callback]], [], []);
   });
 
-  test('ref-object persistence', async () => {
+  test('ref-object persistence', () => {
     const subject = new Subject(() => {
       const [state, setState] = useState(0);
 
@@ -881,12 +793,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[1], [2]], [], []);
   });
 
-  test('reducer with static initial state', async () => {
+  test('reducer with static initial state', () => {
     const subject = new Subject(() => {
       const [state, dispatch] = useReducer(reducer, 22);
 
@@ -900,12 +810,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[22], [30]], [], []);
   });
 
-  test('reducer with lazy initial state', async () => {
+  test('reducer with lazy initial state', () => {
     const subject = new Subject(() => {
       const [state, dispatch] = useReducer(
         reducer,
@@ -923,12 +831,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[22], [30]], [], []);
   });
 
-  test('failing reducer function', async () => {
+  test('failing reducer function', () => {
     const subject = new Subject(() => {
       const [state, dispatch] = useReducer(() => {
         throw customError;
@@ -941,12 +847,10 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     assertObserverCalls(observer, [[0]], [[customError]], []);
   });
 
-  test('stable dispatch identity', async () => {
+  test('stable dispatch identity', () => {
     const subject = new Subject(() => {
       const [state, dispatch] = useReducer(reducer, 0);
 
@@ -958,8 +862,6 @@ describe('Subject', () => {
     });
 
     subject.subscribe(observer);
-
-    await queueMicrotask();
 
     assertObserverCalls(observer, [[0], [1]], [], []);
   });
@@ -980,7 +882,7 @@ describe('Subject', () => {
     );
   });
 
-  test('clean up effects before calling observer.error', async () => {
+  test('clean up effects before calling observer.error', () => {
     const cleanUpEffect = jest.fn();
 
     const mainHook = jest.fn(() => {
@@ -1002,14 +904,12 @@ describe('Subject', () => {
 
     subject.subscribe(observer);
 
-    await queueMicrotask();
-
     expect(numberOfCalls).toBe(1);
 
     assertObserverCalls(observer, [[undefined]], [[customError]], []);
   });
 
-  test('clean up effects before calling observer.complete', async () => {
+  test('clean up effects before calling observer.complete', () => {
     const cleanUpEffect = jest.fn();
 
     const mainHook = jest.fn(() => {
@@ -1026,8 +926,6 @@ describe('Subject', () => {
     });
 
     subject.subscribe(observer);
-
-    await queueMicrotask();
 
     subject.complete();
 
