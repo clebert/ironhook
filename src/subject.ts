@@ -40,6 +40,11 @@ interface MemoMemoryCell<TValue> {
 
 type MemoryCell = EffectMemoryCell | StateMemoryCell<any> | MemoMemoryCell<any>;
 
+type Result<TValue> =
+  | {readonly type: 'value'; readonly value: TValue}
+  | {readonly type: 'error'; readonly error: Error}
+  | {readonly type: 'completed'};
+
 export class Subject<TValue> {
   private static active: Subject<unknown> | undefined;
 
@@ -58,13 +63,22 @@ export class Subject<TValue> {
   private observers: Set<Observer<TValue>> | undefined = new Set();
   private memoryAllocated = false;
   private memoryPointer = 0;
+  private latestResult?: Result<TValue>;
 
   public constructor(private readonly mainHook: MainHook<TValue>) {}
 
   public subscribe(observer: Observer<TValue>): Unsubscribe {
     this.observers?.add(observer);
 
-    this.run();
+    if (!this.latestResult) {
+      this.run();
+    } else if (this.latestResult.type === 'value') {
+      observer.next(this.latestResult.value);
+    } else if (this.latestResult.type === 'error') {
+      observer.error(this.latestResult.error);
+    } else {
+      observer.complete();
+    }
 
     return () => this.observers?.delete(observer);
   }
@@ -77,6 +91,7 @@ export class Subject<TValue> {
     }
 
     this.observers = undefined;
+    this.latestResult = {type: 'completed'};
 
     this.cleanUpEffects(true);
 
@@ -137,7 +152,7 @@ export class Subject<TValue> {
         setState: state => {
           memoryCell!.stateChanges = [...memoryCell!.stateChanges, state];
 
-          this.run();
+          Promise.resolve().then(() => this.run());
         },
         state: isFunction<CreateInitialState<TState>>(initialState)
           ? initialState()
@@ -180,41 +195,41 @@ export class Subject<TValue> {
   }
 
   private run(): void {
-    Promise.resolve().then(() => {
-      try {
-        if (!this.memoryAllocated || this.applyStateChanges()) {
-          do {
+    try {
+      if (!this.memoryAllocated || this.applyStateChanges()) {
+        do {
+          this.execute();
+
+          while (this.applyStateChanges()) {
             this.execute();
-
-            while (this.applyStateChanges()) {
-              this.execute();
-            }
-
-            this.cleanUpEffects();
-            this.triggerEffects();
-          } while (this.applyStateChanges());
-        }
-      } catch (error) {
-        const observers = this.observers;
-
-        if (!observers) {
-          return;
-        }
-
-        this.observers = undefined;
-
-        this.cleanUpEffects(true);
-
-        for (const observer of observers) {
-          try {
-            observer.error(error);
-          } catch (error) {
-            // @ts-ignore
-            console.error('Error while publishing error.', error);
           }
+
+          this.cleanUpEffects();
+          this.triggerEffects();
+        } while (this.applyStateChanges());
+      }
+    } catch (error) {
+      const observers = this.observers;
+
+      if (!observers) {
+        return;
+      }
+
+      this.observers = undefined;
+
+      this.cleanUpEffects(true);
+
+      this.latestResult = {type: 'error', error};
+
+      for (const observer of observers) {
+        try {
+          observer.error(error);
+        } catch (error) {
+          // @ts-ignore
+          console.error('Error while publishing error.', error);
         }
       }
-    });
+    }
   }
 
   private execute(): void {
@@ -234,6 +249,8 @@ export class Subject<TValue> {
       }
 
       this.memoryAllocated = true;
+
+      this.latestResult = {type: 'value', value};
 
       for (const observer of this.observers) {
         try {
