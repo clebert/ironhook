@@ -1,6 +1,6 @@
 {
   "name": "ironhook",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "A JavaScript library for reactive programming using React-like Hooks.",
   "keywords": [
     "async",
